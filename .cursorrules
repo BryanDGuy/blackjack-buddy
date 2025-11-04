@@ -1,0 +1,73 @@
+# Blackjack Buddy - AI Assistant Rules
+
+## Core Principles
+
+1. **Minimalism First**: No fluff, verbose output, or decorative elements
+2. **Essential Output Only**: Single-line results, no explanations unless asked
+3. **No Emojis**: Keep all output and code professional and clean
+4. **Clean Code**: No unnecessary comments - code should be self-documenting
+
+## Code Style
+
+### Output Format
+- Use concise, pipe-separated output: `Hand | Dealer | Action`
+- Error messages: Short and direct (e.g., "Invalid: <reason>")
+- Prompts: Minimal (e.g., "Your cards: ", "Dealer card: ")
+- No welcome messages, banners, or decorative separators
+
+### Comments
+- Avoid inline comments unless absolutely necessary for complex logic
+- No obvious comments explaining what code does
+- Package-level documentation only when needed
+
+### Structure
+- Keep functions focused and single-purpose
+- Prefer small, readable functions over commented complex ones
+- Use descriptive names instead of comments
+
+## Architecture
+
+### Strategy Pattern
+- Matrix-based lookup for blackjack decisions
+- Separate strategy implementation from decision logic
+- Advisor uses injected strategy (see `NewAdvisor(basicStrategy)`)
+
+### Package Organization
+- `internal/card`: Card representation (rank-only)
+- `internal/hand`: Hand evaluation and scoring
+- `internal/strategy`: Decision logic and basic strategy matrix
+- `cmd/blackjack-buddy`: CLI interface (minimal, essential only)
+
+## Development Rules
+
+### When Adding Features
+1. Keep output minimal - one line where possible
+2. No decorative elements or "helpful" messages
+3. Maintain functional, clean code without fluff
+4. Test that build works: `make build`
+
+### When Modifying Code
+1. Remove comments rather than add them
+2. Simplify output rather than embellish it
+3. Reduce lines of code where possible
+4. Keep functions under 30 lines
+
+### File Management
+- Use Make for all build/run tasks
+- Keep README under 60 lines
+- No excessive documentation files
+
+## Testing Additions
+- When adding tests, keep output minimal
+- Use table-driven tests for clarity
+- No verbose test names - be concise
+
+## Anti-Patterns to Avoid
+❌ Emojis anywhere in code or output
+❌ Multi-line explanatory messages
+❌ Welcome screens or banners  
+❌ Verbose error messages with suggestions
+❌ Comments explaining obvious code
+❌ Decorative separators (===, ---, etc.)
+❌ "Helpful" context or tips in output
+

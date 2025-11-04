@@ -3,7 +3,7 @@ package card
 type Rank int
 
 const (
-	Ace Rank = iota + 1
+	Ace Rank = iota
 	Two
 	Three
 	Four
@@ -29,7 +29,7 @@ func NewCard(rank Rank) Card {
 func (c Card) Value() int {
 	switch c.Rank {
 	case Ace:
-		return 11 // Will be adjusted to 1 if needed
+		return 11
 	case Jack, Queen, King:
 		return 10
 	default:

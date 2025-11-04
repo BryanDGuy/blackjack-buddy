@@ -37,7 +37,6 @@ func (h *Hand) Value() int {
 	total := 0
 	aces := 0
 
-	// First pass: count all non-ace cards
 	for _, c := range h.Cards {
 		if c.IsAce() {
 			aces++
@@ -46,7 +45,6 @@ func (h *Hand) Value() int {
 		}
 	}
 
-	// Second pass: handle aces optimally
 	for i := 0; i < aces; i++ {
 		if total+11 <= 21 {
 			total += 11
@@ -74,7 +72,6 @@ func (h *Hand) IsSoft() bool {
 	total := 0
 	aces := 0
 
-	// Count non-ace cards
 	for _, c := range h.Cards {
 		if c.IsAce() {
 			aces++
@@ -83,7 +80,6 @@ func (h *Hand) IsSoft() bool {
 		}
 	}
 
-	// Check if any ace is being counted as 11
 	if aces > 0 && total+11+aces-1 <= 21 {
 		return true
 	}
@@ -108,4 +104,151 @@ func (h *Hand) FirstCard() (card.Card, bool) {
 		return card.Card{}, false
 	}
 	return h.Cards[0], true
+}
+
+type HandType int
+
+const (
+	Pair2 HandType = iota
+	Pair3
+	Pair4
+	Pair5
+	Pair6
+	Pair7
+	Pair8
+	Pair9
+	Pair10
+	PairA
+	SoftA2
+	SoftA3
+	SoftA4
+	SoftA5
+	SoftA6
+	SoftA7
+	SoftA8
+	SoftA9
+	Hard4
+	Hard5
+	Hard6
+	Hard7
+	Hard8
+	Hard9
+	Hard10
+	Hard11
+	Hard12
+	Hard13
+	Hard14
+	Hard15
+	Hard16
+	Hard17
+	Hard18
+	Hard19
+	Hard20
+	Blackjack
+)
+
+func (h *Hand) GetType() HandType {
+	if h.IsBlackjack() {
+		return Blackjack
+	}
+
+	if h.CanSplit() {
+		return GetPairHandType(h.Cards[0])
+	}
+
+	if h.IsSoft() {
+		return GetSoftHandType(h)
+	}
+
+	return GetHardHandType(h.Value())
+}
+
+func GetPairHandType(pairCard card.Card) HandType {
+	switch pairCard.Rank {
+	case card.Two:
+		return Pair2
+	case card.Three:
+		return Pair3
+	case card.Four:
+		return Pair4
+	case card.Five:
+		return Pair5
+	case card.Six:
+		return Pair6
+	case card.Seven:
+		return Pair7
+	case card.Eight:
+		return Pair8
+	case card.Nine:
+		return Pair9
+	case card.Ten, card.Jack, card.Queen, card.King:
+		return Pair10
+	case card.Ace:
+		return PairA
+	default:
+		return Hard8
+	}
+}
+
+func GetSoftHandType(h *Hand) HandType {
+	value := h.Value()
+	switch value {
+	case 13:
+		return SoftA2
+	case 14:
+		return SoftA3
+	case 15:
+		return SoftA4
+	case 16:
+		return SoftA5
+	case 17:
+		return SoftA6
+	case 18:
+		return SoftA7
+	case 19:
+		return SoftA8
+	case 20:
+		return SoftA9
+	default:
+		return Hard8
+	}
+}
+
+func GetHardHandType(value int) HandType {
+	switch {
+	case value <= 4:
+		return Hard4
+	case value == 5:
+		return Hard5
+	case value == 6:
+		return Hard6
+	case value == 7:
+		return Hard7
+	case value == 8:
+		return Hard8
+	case value == 9:
+		return Hard9
+	case value == 10:
+		return Hard10
+	case value == 11:
+		return Hard11
+	case value == 12:
+		return Hard12
+	case value == 13:
+		return Hard13
+	case value == 14:
+		return Hard14
+	case value == 15:
+		return Hard15
+	case value == 16:
+		return Hard16
+	case value == 17:
+		return Hard17
+	case value == 18:
+		return Hard18
+	case value == 19:
+		return Hard19
+	default:
+		return Hard20
+	}
 }
