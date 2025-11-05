@@ -41,10 +41,40 @@ func (c *Custom) getDealerCardIndex(dealerCard card.Card) int {
 	}
 }
 
-func NewCustom(decisionMatrix DecisionMatrix) *Custom {
+func NewCustom(decisionMatrix DecisionMatrix) (*Custom, error) {
+	if err := validateMatrix(decisionMatrix); err != nil {
+		return nil, err
+	}
 	return &Custom{
 		decisionMatrix: decisionMatrix,
+	}, nil
+}
+
+func validateMatrix(matrix DecisionMatrix) error {
+	for handType := hand.Hard20; handType <= hand.Pair2; handType++ {
+		if matrix[handType] == nil {
+			return fmt.Errorf("matrix[%d] is nil", handType)
+		}
+
+		if len(matrix[handType]) != 10 {
+			return fmt.Errorf("matrix[%d] must have 10 dealer cards, has %d", handType, len(matrix[handType]))
+		}
+
+		for dealerIdx := 0; dealerIdx < 10; dealerIdx++ {
+			decision := matrix[handType][dealerIdx]
+
+			if decision < strategy.Hit || decision > strategy.Split {
+				return fmt.Errorf("invalid decision at matrix[%d][%d]: %d", handType, dealerIdx, decision)
+			}
+
+			isPair := handType >= hand.PairA && handType <= hand.Pair2
+			if !isPair && decision == strategy.Split {
+				return fmt.Errorf("non-pair hand cannot split: matrix[%d][%d]", handType, dealerIdx)
+			}
+		}
 	}
+
+	return nil
 }
 
 func (c *Custom) GetDecision(playerHand, dealerHand *hand.Hand) strategy.Decision {
