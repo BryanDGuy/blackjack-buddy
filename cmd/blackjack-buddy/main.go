@@ -13,8 +13,8 @@ import (
 )
 
 func main() {
-	basicStrategy := strategies.NewBasic()
-	advisor := strategy.NewAdvisor(basicStrategy)
+	strat := strategies.CreateStrategy(strategies.BasicStrategy)
+	advisor := strategy.NewAdvisor(strat)
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
