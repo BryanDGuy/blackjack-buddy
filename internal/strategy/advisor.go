@@ -91,7 +91,6 @@ func (a *Advisor) MakeDecision(playerHand, dealerHand *hand.Hand) (Decision, err
 
 	playerHandType := playerHand.GetType()
 	dealerUpCard := dealerHand.Cards[0]
-
 	dealerIdx := GetDealerCardIndex(dealerUpCard)
 
 	return a.strategy.GetDecision(playerHandType, dealerIdx), nil

@@ -30,10 +30,26 @@ func (c Card) Value() int {
 	switch c.Rank {
 	case Ace:
 		return 11
-	case Jack, Queen, King:
+	case Two:
+		return 2
+	case Three:
+		return 3
+	case Four:
+		return 4
+	case Five:
+		return 5
+	case Six:
+		return 6
+	case Seven:
+		return 7
+	case Eight:
+		return 8
+	case Nine:
+		return 9
+	case Ten, Jack, Queen, King:
 		return 10
 	default:
-		return int(c.Rank)
+		return 0
 	}
 }
 

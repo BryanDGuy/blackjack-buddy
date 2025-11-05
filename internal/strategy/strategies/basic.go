@@ -5,7 +5,7 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-var strategyMatrix = [hand.Hard20 + 1][]strategy.Decision{
+var strategyMatrix = [hand.Pair2 + 1][]strategy.Decision{
 	hand.Hard20: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard19: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard18: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
