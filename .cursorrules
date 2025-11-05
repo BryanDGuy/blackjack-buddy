@@ -27,15 +27,24 @@
 
 ## Architecture
 
+### OOP Design Principles
+- **Encapsulation**: Each strategy must be self-contained and independent
+- **Low Coupling**: Strategies should not share or call functions from other strategies
+- **Single Responsibility**: Each package/struct has one clear purpose
+- **Interface Segregation**: Use minimal interfaces (e.g., `Strategy`)
+- Strategy internal functions should only be used by that strategy itself
+
 ### Strategy Pattern
 - Matrix-based lookup for blackjack decisions
 - Separate strategy implementation from decision logic
 - Advisor uses injected strategy (see `NewAdvisor(basicStrategy)`)
+- Each strategy implements its own complete logic independently
 
 ### Package Organization
 - `internal/card`: Card representation (rank-only)
 - `internal/hand`: Hand evaluation and scoring
-- `internal/strategy`: Decision logic and basic strategy matrix
+- `internal/strategy`: Decision logic and strategy interface
+- `internal/simulator`: Game simulation engine
 - `cmd/blackjack-buddy`: CLI interface (minimal, essential only)
 
 ## Development Rules
@@ -70,4 +79,6 @@
 ❌ Comments explaining obvious code
 ❌ Decorative separators (===, ---, etc.)
 ❌ "Helpful" context or tips in output
+❌ Strategies sharing or calling each other's functions
+❌ High coupling between independent components
 
