@@ -18,7 +18,7 @@ var decisionMatrix = [hand.Pair2 + 1][]strategy.Decision{
 	hand.Hard14: {strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard13: {strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard12: {strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Hit, strategy.Hit},
-	hand.Hard11: {strategy.Hit, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown},
+	hand.Hard11: {strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown},
 	hand.Hard10: {strategy.Hit, strategy.Hit, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown},
 	hand.Hard9:  {strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.DoubleDown, strategy.Hit},
 	hand.Hard8:  {strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit, strategy.Hit},
