@@ -69,11 +69,3 @@ func (c Card) ToString() string {
 		return "?"
 	}
 }
-
-func (c Card) IsAce() bool {
-	return c.Rank == Ace
-}
-
-func (c Card) IsFaceCard() bool {
-	return c.Rank == Jack || c.Rank == Queen || c.Rank == King
-}

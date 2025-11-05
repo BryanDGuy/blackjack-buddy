@@ -28,7 +28,7 @@ func main() {
 			return
 		}
 
-		decision, err := advisor.GetDecision(playerHand, dealerHand)
+		decision, err := advisor.MakeDecision(playerHand, dealerHand)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			continue

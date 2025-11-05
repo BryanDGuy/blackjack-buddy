@@ -17,10 +17,6 @@ func NewHand(cards []card.Card) *Hand {
 	}
 }
 
-func (h *Hand) IsEmpty() bool {
-	return len(h.Cards) == 0
-}
-
 func (h *Hand) ToString() string {
 	if h.IsEmpty() {
 		return "[]"
@@ -33,12 +29,16 @@ func (h *Hand) ToString() string {
 	return fmt.Sprintf("[%s]", strings.Join(cards, ", "))
 }
 
+func (h *Hand) IsEmpty() bool {
+	return len(h.Cards) == 0
+}
+
 func (h *Hand) Value() int {
 	total := 0
 	aces := 0
 
 	for _, c := range h.Cards {
-		if c.IsAce() {
+		if c.Rank == card.Ace {
 			aces++
 		} else {
 			total += c.Value()
@@ -73,7 +73,7 @@ func (h *Hand) IsSoft() bool {
 	aces := 0
 
 	for _, c := range h.Cards {
-		if c.IsAce() {
+		if c.Rank == card.Ace {
 			aces++
 		} else {
 			total += c.Value()
@@ -87,23 +87,12 @@ func (h *Hand) IsSoft() bool {
 	return false
 }
 
-func (h *Hand) CanDoubleDown() bool {
-	return len(h.Cards) == 2
-}
-
 func (h *Hand) CanSplit() bool {
 	if len(h.Cards) != 2 {
 		return false
 	}
 
 	return h.Cards[0].Rank == h.Cards[1].Rank
-}
-
-func (h *Hand) FirstCard() (card.Card, bool) {
-	if h.IsEmpty() {
-		return card.Card{}, false
-	}
-	return h.Cards[0], true
 }
 
 type HandType int
@@ -144,77 +133,59 @@ const (
 	Hard18
 	Hard19
 	Hard20
-	Blackjack
 )
 
 func (h *Hand) GetType() HandType {
-	if h.IsBlackjack() {
-		return Blackjack
+	if h.CanSplit() {
+		pairCard := h.Cards[0]
+
+		switch pairCard.Rank {
+		case card.Ace:
+			return PairA
+		case card.Two:
+			return Pair2
+		case card.Three:
+			return Pair3
+		case card.Four:
+			return Pair4
+		case card.Five:
+			return Pair5
+		case card.Six:
+			return Pair6
+		case card.Seven:
+			return Pair7
+		case card.Eight:
+			return Pair8
+		case card.Nine:
+			return Pair9
+		default:
+			return Pair10
+		}
 	}
 
-	if h.CanSplit() {
-		return GetPairHandType(h.Cards[0])
-	}
+	value := h.Value()
 
 	if h.IsSoft() {
-		return GetSoftHandType(h)
+		switch value {
+		case 13:
+			return SoftA2
+		case 14:
+			return SoftA3
+		case 15:
+			return SoftA4
+		case 16:
+			return SoftA5
+		case 17:
+			return SoftA6
+		case 18:
+			return SoftA7
+		case 19:
+			return SoftA8
+		default:
+			return SoftA9
+		}
 	}
 
-	return GetHardHandType(h.Value())
-}
-
-func GetPairHandType(pairCard card.Card) HandType {
-	switch pairCard.Rank {
-	case card.Two:
-		return Pair2
-	case card.Three:
-		return Pair3
-	case card.Four:
-		return Pair4
-	case card.Five:
-		return Pair5
-	case card.Six:
-		return Pair6
-	case card.Seven:
-		return Pair7
-	case card.Eight:
-		return Pair8
-	case card.Nine:
-		return Pair9
-	case card.Ten, card.Jack, card.Queen, card.King:
-		return Pair10
-	case card.Ace:
-		return PairA
-	default:
-		return Hard8
-	}
-}
-
-func GetSoftHandType(h *Hand) HandType {
-	value := h.Value()
-	switch value {
-	case 13:
-		return SoftA2
-	case 14:
-		return SoftA3
-	case 15:
-		return SoftA4
-	case 16:
-		return SoftA5
-	case 17:
-		return SoftA6
-	case 18:
-		return SoftA7
-	case 19:
-		return SoftA8
-	case 20:
-		return SoftA9
-	default:
-		return Hard8
-	}
-}
-
-func GetHardHandType(value int) HandType {
 	switch {
 	case value <= 4:
 		return Hard4

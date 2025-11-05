@@ -1,6 +1,8 @@
 package strategy
 
 import (
+	"fmt"
+
 	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/hand"
 )
@@ -9,26 +11,26 @@ func GetDealerCardIndex(dealerCard card.Card) int {
 	switch dealerCard.Rank {
 	case card.Ace:
 		return 0
-	case card.Two:
+	case card.Ten, card.Jack, card.Queen, card.King:
 		return 1
-	case card.Three:
+	case card.Nine:
 		return 2
-	case card.Four:
+	case card.Eight:
 		return 3
-	case card.Five:
+	case card.Seven:
 		return 4
 	case card.Six:
 		return 5
-	case card.Seven:
+	case card.Five:
 		return 6
-	case card.Eight:
+	case card.Four:
 		return 7
-	case card.Nine:
+	case card.Three:
 		return 8
-	case card.Ten, card.Jack, card.Queen, card.King:
+	case card.Two:
 		return 9
 	default:
-		return 0
+		panic(fmt.Sprintf("invalid dealer card: %s", dealerCard.ToString()))
 	}
 }
 
@@ -39,7 +41,6 @@ const (
 	Stand
 	DoubleDown
 	Split
-	Surrender
 )
 
 func (d Decision) ToString() string {
@@ -52,15 +53,13 @@ func (d Decision) ToString() string {
 		return "DOUBLE DOWN"
 	case Split:
 		return "SPLIT"
-	case Surrender:
-		return "SURRENDER"
 	default:
 		return "UNKNOWN"
 	}
 }
 
 type Strategy interface {
-	GetDecision(playerHand, dealerHand *hand.Hand) (Decision, error)
+	GetDecision(playerHandType hand.HandType, dealerIdx int) Decision
 }
 
 type Advisor struct {
@@ -73,6 +72,27 @@ func NewAdvisor(strategy Strategy) *Advisor {
 	}
 }
 
-func (a *Advisor) GetDecision(playerHand, dealerHand *hand.Hand) (Decision, error) {
-	return a.strategy.GetDecision(playerHand, dealerHand)
+func (a *Advisor) MakeDecision(playerHand, dealerHand *hand.Hand) (Decision, error) {
+	if playerHand.IsEmpty() {
+		return Hit, fmt.Errorf("player hand is empty")
+	}
+
+	if dealerHand.IsEmpty() {
+		return Hit, fmt.Errorf("dealer hand is empty")
+	}
+
+	if playerHand.IsBlackjack() {
+		return Stand, nil
+	}
+
+	if playerHand.IsBust() {
+		return Stand, nil
+	}
+
+	playerHandType := playerHand.GetType()
+	dealerUpCard := dealerHand.Cards[0]
+
+	dealerIdx := GetDealerCardIndex(dealerUpCard)
+
+	return a.strategy.GetDecision(playerHandType, dealerIdx), nil
 }
