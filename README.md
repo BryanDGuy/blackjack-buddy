@@ -5,7 +5,8 @@ Blackjack decision assistant implementing basic strategy. Minimal CLI written in
 ## Features
 
 - Matrix-based basic strategy lookup
-- Supports all decisions: Hit, Stand, Double Down, Split, Surrender
+- Interactive decision advisor
+- Strategy simulation with multiple strategies
 - Handles soft hands, pairs, and hard hands
 
 ## Quick Start
@@ -15,23 +16,30 @@ Blackjack decision assistant implementing basic strategy. Minimal CLI written in
 ```bash
 git clone https://github.com/bryan/blackjack-buddy.git
 cd blackjack-buddy
-make run
+make build
 ```
 
 ## Usage
 
+### Interactive Mode
 ```bash
-make run
+./blackjack-buddy
+# Your cards: A 7
+# Dealer card: K
+# [A, 7] | Dealer: K | Action: HIT
 ```
 
-**Example:**
-```
-Your cards: A 7
-Dealer card: K
-[A, 7] | Dealer: K | Action: HIT
+### Simulation Mode
+```bash
+./blackjack-buddy -sim -strategy=basic -pot=1000 -buyin=10 -rounds=100
+# Output: 990.00 | -1.0%
+
+./blackjack-buddy -sim -strategy=basic -pot=200 -buyin=10 -rounds=5 -verbose
+# 1 | 20 vs 17 | +10.00 | 210.00
+# 2 | BJ vs 18 | +15.00 | 225.00
 ```
 
-**Card input:** `A K Q J 10 9 8 7 6 5 4 3 2`
+**Flags:** `-sim`, `-strategy=<basic|coward>`, `-pot=<amount>`, `-buyin=<amount>`, `-rounds=<count>`, `-verbose`
 
 ## Development
 
@@ -46,9 +54,6 @@ make help    # Show targets
 
 - `internal/card` - Card representation
 - `internal/hand` - Hand evaluation and scoring
-- `internal/strategy` - Basic strategy matrix lookup
+- `internal/strategy` - Strategy matrix lookup
+- `internal/simulator` - Game simulation
 - `cmd/blackjack-buddy` - CLI interface
-
-## License
-
-Open source. Use and modify as needed.

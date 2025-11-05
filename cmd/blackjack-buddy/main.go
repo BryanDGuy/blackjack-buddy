@@ -2,18 +2,50 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/hand"
+	"github.com/bryan/blackjack-buddy/internal/simulator"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 	"github.com/bryan/blackjack-buddy/internal/strategy/strategies"
 )
 
 func main() {
-	strat := strategies.CreateStrategy(strategies.BasicStrategy)
+	simMode := flag.Bool("sim", false, "")
+	strategyName := flag.String("strategy", "basic", "")
+	startingPot := flag.Float64("pot", 1000, "")
+	buyIn := flag.Float64("buyin", 10, "")
+	rounds := flag.Int("rounds", 100, "")
+	verbose := flag.Bool("verbose", false, "")
+	flag.Parse()
+
+	stratType := strategies.StrategyType(*strategyName)
+	strat := strategies.CreateStrategy(stratType)
+
+	if *simMode {
+		runSimulation(strat, *startingPot, *buyIn, *rounds, *verbose)
+	} else {
+		runInteractive(strat)
+	}
+}
+
+func runSimulation(strat strategy.Strategy, startingPot, buyIn float64, rounds int, verbose bool) {
+	sim := simulator.NewSimulator(strat)
+	result := sim.Run(startingPot, buyIn, rounds, verbose)
+
+	if result.RanOutOfMoney {
+		fmt.Printf("%.2f | %.1f%% | Ran out after %d rounds\n",
+			result.FinalPot, result.GainLossPercent, result.RoundsPlayed)
+	} else {
+		fmt.Printf("%.2f | %.1f%%\n", result.FinalPot, result.GainLossPercent)
+	}
+}
+
+func runInteractive(strat strategy.Strategy) {
 	advisor := strategy.NewAdvisor(strat)
 	scanner := bufio.NewScanner(os.Stdin)
 
