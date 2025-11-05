@@ -8,7 +8,7 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-var strategyMatrix = [hand.Pair2 + 1][]strategy.Decision{
+var decisionMatrix = [hand.Pair2 + 1][]strategy.Decision{
 	hand.Hard20: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard19: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard18: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
@@ -82,5 +82,5 @@ func NewBasic() *Basic {
 func (s *Basic) GetDecision(playerHand, dealerHand *hand.Hand) strategy.Decision {
 	playerHandType := playerHand.GetType()
 	dealerIdx := GetDealerCardIndex(dealerHand.Cards[0])
-	return strategyMatrix[playerHandType][dealerIdx]
+	return decisionMatrix[playerHandType][dealerIdx]
 }
