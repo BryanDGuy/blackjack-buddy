@@ -11,6 +11,6 @@ func NewCoward() *Coward {
 	return &Coward{}
 }
 
-func (s *Coward) GetDecision(playerHandType hand.HandType, dealerIdx int) strategy.Decision {
+func (s *Coward) GetDecision(playerHand, dealerHand *hand.Hand) strategy.Decision {
 	return strategy.Stand
 }
