@@ -24,6 +24,7 @@ make build
 ### Interactive Mode
 ```bash
 ./blackjack-buddy
+# Strategy (basic/coward): basic
 # Your cards: A 7
 # Dealer card: K
 # [A, 7] | Dealer: K | Action: HIT

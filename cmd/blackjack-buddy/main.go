@@ -23,13 +23,12 @@ func main() {
 	verbose := flag.Bool("verbose", false, "")
 	flag.Parse()
 
-	stratType := strategies.StrategyType(*strategyName)
-	strat := strategies.CreateStrategy(stratType)
-
 	if *simMode {
+		stratType := strategies.StrategyType(*strategyName)
+		strat := strategies.CreateStrategy(stratType)
 		runSimulation(strat, *startingPot, *buyIn, *rounds, *verbose)
 	} else {
-		runInteractive(strat)
+		runInteractive()
 	}
 }
 
@@ -45,9 +44,22 @@ func runSimulation(strat strategy.Strategy, startingPot, buyIn float64, rounds i
 	}
 }
 
-func runInteractive(strat strategy.Strategy) {
-	advisor := strategy.NewAdvisor(strat)
+func runInteractive() {
 	scanner := bufio.NewScanner(os.Stdin)
+	
+	fmt.Print("Strategy (basic/coward): ")
+	if !scanner.Scan() {
+		return
+	}
+	
+	strategyInput := strings.ToLower(strings.TrimSpace(scanner.Text()))
+	if strategyInput == "" || strategyInput == "quit" {
+		return
+	}
+	
+	stratType := strategies.StrategyType(strategyInput)
+	strat := strategies.CreateStrategy(stratType)
+	advisor := strategy.NewAdvisor(strat)
 
 	for {
 		playerHand := getPlayerHand(scanner)
