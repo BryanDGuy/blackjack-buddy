@@ -29,6 +29,10 @@ type Scenario struct {
 	DealerCard  string   `json:"dealerCard"`
 }
 
+type ScenarioRequest struct {
+	SkipTrivial bool `json:"skipTrivial"`
+}
+
 type CheckRequest struct {
 	PlayerCards []string `json:"playerCards"`
 	DealerCard  string   `json:"dealerCard"`
@@ -41,13 +45,35 @@ type CheckResponse struct {
 	UserDecision    string `json:"userDecision"`
 }
 
-func (t *Trainer) generateScenario() Scenario {
-	playerCards := []card.Card{t.randomCard(), t.randomCard()}
-	dealerCard := t.randomCard()
+func (t *Trainer) generateScenario(skipTrivial bool) Scenario {
+	for {
+		playerCards := []card.Card{t.randomCard(), t.randomCard()}
+		dealerCard := t.randomCard()
 
-	return Scenario{
-		PlayerCards: []string{playerCards[0].ToString(), playerCards[1].ToString()},
-		DealerCard:  dealerCard.ToString(),
+		if skipTrivial && t.isTrivialHand(playerCards) {
+			continue
+		}
+
+		return Scenario{
+			PlayerCards: []string{playerCards[0].ToString(), playerCards[1].ToString()},
+			DealerCard:  dealerCard.ToString(),
+		}
+	}
+}
+
+func (t *Trainer) isTrivialHand(playerCards []card.Card) bool {
+	h := hand.NewHand(playerCards)
+	if h.IsBlackjack() {
+		return true
+	}
+	handType := h.GetType()
+	switch handType {
+	case hand.Hard20, hand.Hard19, hand.Hard18, hand.Hard17:
+		return true
+	case hand.Hard8, hand.Hard7, hand.Hard6, hand.Hard5, hand.Hard4:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -111,7 +137,11 @@ func (t *Trainer) parseCard(s string) (card.Card, error) {
 }
 
 func (t *Trainer) handleScenario(w http.ResponseWriter, r *http.Request) {
-	scenario := t.generateScenario()
+	var req ScenarioRequest
+	if r.Method == "POST" {
+		json.NewDecoder(r.Body).Decode(&req)
+	}
+	scenario := t.generateScenario(req.SkipTrivial)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(scenario)
 }
@@ -202,6 +232,9 @@ button:active { transform: scale(0.98); }
 .stat { text-align: center; }
 .stat-value { font-size: 28px; font-weight: bold; }
 .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+.options { text-align: center; margin: 16px 0; }
+.checkbox { font-size: 14px; color: #fff; cursor: pointer; }
+.checkbox input { margin-right: 8px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -210,6 +243,9 @@ button:active { transform: scale(0.98); }
 <div class="stat"><div class="stat-value" id="correct">0</div><div class="stat-label">CORRECT</div></div>
 <div class="stat"><div class="stat-value" id="total">0</div><div class="stat-label">TOTAL</div></div>
 <div class="stat"><div class="stat-value" id="percent">0%</div><div class="stat-label">ACCURACY</div></div>
+</div>
+<div class="options">
+<label class="checkbox"><input type="checkbox" id="skip-trivial" checked> Skip Trivial</label>
 </div>
 <div class="section">
 <div class="label">Dealer Card</div>
@@ -232,7 +268,12 @@ let currentScenario = null;
 let stats = { correct: 0, total: 0 };
 
 async function loadScenario() {
-	const res = await fetch('/api/scenario');
+	const skipTrivial = document.getElementById('skip-trivial').checked;
+	const res = await fetch('/api/scenario', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ skipTrivial: skipTrivial })
+	});
 	currentScenario = await res.json();
 	document.getElementById('player-cards').innerHTML = currentScenario.playerCards.map(c => '<div class="card">' + c + '</div>').join('');
 	document.getElementById('dealer-card').innerHTML = '<div class="card">' + currentScenario.dealerCard + '</div>';
