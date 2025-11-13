@@ -12,10 +12,12 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/simulator"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 	"github.com/bryan/blackjack-buddy/internal/strategy/strategies"
+	"github.com/bryan/blackjack-buddy/internal/trainer"
 )
 
 func main() {
 	simMode := flag.Bool("sim", false, "")
+	trainMode := flag.Bool("train", false, "")
 	strategyName := flag.String("strategy", "basic", "")
 	startingPot := flag.Float64("pot", 1000, "")
 	buyIn := flag.Float64("buyin", 10, "")
@@ -23,12 +25,23 @@ func main() {
 	verbose := flag.Bool("verbose", false, "")
 	flag.Parse()
 
-	if *simMode {
-		stratType := strategies.StrategyType(*strategyName)
-		strat := strategies.CreateStrategy(stratType)
+	stratType := strategies.StrategyType(*strategyName)
+	strat := strategies.CreateStrategy(stratType)
+
+	if *trainMode {
+		runTrainer(strat)
+	} else if *simMode {
 		runSimulation(strat, *startingPot, *buyIn, *rounds, *verbose)
 	} else {
 		runInteractive()
+	}
+}
+
+func runTrainer(strat strategy.Strategy) {
+	t := trainer.NewTrainer(strat)
+	if err := t.Start(8080); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
