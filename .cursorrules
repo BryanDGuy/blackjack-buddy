@@ -6,7 +6,6 @@
 2. **Essential Output Only**: Single-line results, no explanations unless asked
 3. **No Emojis**: Keep all output and code professional and clean
 4. **Clean Code**: No unnecessary comments - code should be self-documenting
-5. **Eliminate Conditionals**: Remove conditional checks (especially nil/null checks) unless absolutely necessary. Design the code structure, types, and initialization flow to guarantee invariants rather than checking them. Always evaluate why a value might be nil/null and redesign to make it impossible rather than checking for it.
 
 ## Code Style
 
@@ -71,8 +70,6 @@
 3. Reduce lines of code where possible
 4. Keep functions under 30 lines
 5. Keep domain packages free from transport helpers; conversions live under `api/`
-6. Remove defensive nil/null checks - redesign initialization and data flow to guarantee non-nil values
-7. Question every conditional: can the design eliminate the need for this check?
 
 ### File Management
 - Use Make for all build/run tasks
@@ -102,6 +99,4 @@
 ❌ "Helpful" context or tips in output
 ❌ Strategies sharing or calling each other's functions
 ❌ High coupling between independent components
-❌ Defensive nil/null checks when initialization guarantees non-nil values
-❌ Conditional checks that can be eliminated through better design
 

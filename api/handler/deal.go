@@ -33,10 +33,12 @@ func NewDeal(engine *game.Engine, advisor *strategy.Advisor) http.HandlerFunc {
 
 		d := engine.GenerateDeal(req.SkipTrivial)
 		hint := ""
-		playerHand := hand.NewHand(d.Player)
-		dealerHand := hand.NewHand([]card.Card{d.Dealer})
-		if decision, err := advisor.MakeDecision(playerHand, dealerHand); err == nil {
-			hint = decision.ToString()
+		if advisor != nil {
+			playerHand := hand.NewHand(d.Player)
+			dealerHand := hand.NewHand([]card.Card{d.Dealer})
+			if decision, err := advisor.MakeDecision(playerHand, dealerHand); err == nil {
+				hint = decision.ToString()
+			}
 		}
 		resp := deal{
 			PlayerCards: helpers.CardsToStrings(d.Player),

@@ -21,20 +21,20 @@ export interface CheckRequest {
 export interface CheckResponse {
   correct: boolean;
   correctDecision: string;
-  outcome: string;
+  outcome?: string;
   roundComplete: boolean;
-  restart: boolean;
-  playerCards: string[];
-  dealerCards: string[];
-  queuedHands: string[][];
-  completedHands: string[][];
-  completedOutcomes: string[];
-  pot: number;
-  bet: number;
-  roundWinnings: number;
-  totalWinnings: number;
-  deckState: { totalCards: number; rankCounts: Record<string, number> };
-  hint: string;
+  restart?: boolean;
+  playerCards?: string[];
+  dealerCards?: string[];
+  queuedHands?: string[][];
+  completedHands?: string[][];
+  completedOutcomes?: string[];
+  pot?: number;
+  bet?: number;
+  roundWinnings?: number;
+  totalWinnings?: number;
+  deckState?: { totalCards: number; rankCounts: Record<string, number> };
+  hint?: string;
 }
 
 export interface HintRequest {
