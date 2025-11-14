@@ -160,8 +160,6 @@ func (h *Hand) GetType() HandType {
 			return Pair3
 		case card.Two:
 			return Pair2
-		default:
-			panic(fmt.Sprintf("invalid pair card: %s", pairCard.ToString()))
 		}
 	}
 
@@ -185,8 +183,6 @@ func (h *Hand) GetType() HandType {
 			return SoftA3
 		case 13:
 			return SoftA2
-		default:
-			panic(fmt.Sprintf("invalid soft value: %d", value))
 		}
 	}
 
@@ -227,7 +223,7 @@ func (h *Hand) GetType() HandType {
 		return Hard5
 	case 4:
 		return Hard4
-	default:
-		panic(fmt.Sprintf("invalid hard value: %d", value))
 	}
+
+	panic(fmt.Sprintf("unreachable: hand value %d cannot be classified", value))
 }
