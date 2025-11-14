@@ -1,12 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import {
-    KEY_BINDINGS,
-    TABLE_HEADERS,
-    HARD_MATRIX,
-    SOFT_MATRIX,
-    PAIR_MATRIX
-  } from './constants';
+  import { KEY_BINDINGS } from './constants';
+  import { loadDeal, checkDecision, getHint } from './api';
+  import Stats from './components/Stats.svelte';
+  import DeckPanel from './components/DeckPanel.svelte';
+  import StrategyTable from './components/StrategyTable.svelte';
 
   let skipTrivial = false;
   let playerCards: string[] = [];
@@ -14,13 +12,11 @@
   let dealerCards: string[] = [];
   let queuedHands: string[][] = [];
   let completedHands: string[][] = [];
-  let completedOutcomes: string[] = [];
   let correct = 0;
   let total = 0;
   let pot = 1000;
   let bet = 10;
   let totalWinnings = 0;
-  let roundWinnings = 0;
   let deckState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
   let hint = '';
   let resultText = 'Result: -';
@@ -45,52 +41,18 @@
   
   async function updateHint() {
     if (!playerCards.length || !dealerCard || locked) return;
-    try {
-      const res = await fetch('/api/hint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playerCards, dealerCard })
-      });
-      const data = await res.json();
-      hint = data.hint || '';
-    } catch (e) {
-      hint = '';
-    }
+    hint = await getHint({ playerCards, dealerCard });
   }
 
-  const rowDecisions = (row: string[]) => row.slice(1);
-
-  const decisionClass = (val: string) => {
-    switch (val) {
-      case 'S':
-        return 'cell-stand';
-      case 'H':
-        return 'cell-hit';
-      case 'D':
-        return 'cell-double';
-      case 'SP':
-        return 'cell-split';
-      default:
-        return '';
-    }
-  };
-
-  async function loadDeal() {
-    const res = await fetch('/api/deal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ skipTrivial })
-    });
-    const data = await res.json();
+  async function handleLoadDeal() {
+    const data = await loadDeal(skipTrivial);
     playerCards = data.playerCards || [];
     dealerCard = data.dealerCard || '';
     dealerCards = dealerCard ? [dealerCard] : [];
     queuedHands = [];
     completedHands = [];
-    completedOutcomes = [];
     if (total === 0) pot = data.pot || 1000;
     bet = data.bet || 10;
-    roundWinnings = 0;
     if (data.deckState) deckState = data.deckState;
     hint = data.hint || '';
     resultText = 'Result: -';
@@ -109,21 +71,16 @@
     busy = true;
 
     try {
-      const res = await fetch('/api/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          playerCards,
-          dealerCard,
-          decision,
-          queuedHands,
-          completedHands,
-          pot,
-          bet,
-          totalWinnings
-        })
+      const result = await checkDecision({
+        playerCards,
+        dealerCard,
+        decision,
+        queuedHands,
+        completedHands,
+        pot,
+        bet,
+        totalWinnings
       });
-      const result = await res.json();
 
       total += 1;
       if (result.correct) {
@@ -132,7 +89,6 @@
 
       if (result.pot !== undefined) pot = result.pot;
       if (result.bet !== undefined) bet = result.bet;
-      if (result.roundWinnings !== undefined) roundWinnings = result.roundWinnings;
       if (result.totalWinnings !== undefined) totalWinnings = result.totalWinnings;
       if (result.deckState) deckState = result.deckState;
       if (result.hint !== undefined) hint = result.hint;
@@ -167,7 +123,6 @@
 
       queuedHands = Array.isArray(result.queuedHands) ? result.queuedHands : [];
       completedHands = Array.isArray(result.completedHands) ? result.completedHands : [];
-      completedOutcomes = Array.isArray(result.completedOutcomes) ? result.completedOutcomes : [];
 
       if (result.roundComplete && queuedHands.length === 0 && result.correct && !result.restart) {
         nextVisible = true;
@@ -187,14 +142,15 @@
     }
     busy = true;
     try {
-      await loadDeal();
+      await handleLoadDeal();
     } finally {
       busy = false;
     }
   }
 
   function handleKey(event: KeyboardEvent) {
-    const tag = event.target?.tagName;
+    const target = event.target as HTMLElement;
+    const tag = target?.tagName;
     if (tag && ['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) {
       return;
     }
@@ -212,7 +168,7 @@
   }
 
   onMount(() => {
-    loadDeal();
+    handleLoadDeal();
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   });
@@ -220,19 +176,22 @@
 
 <div class="app">
   <div class="stats">
-    <div class="stat"><div class="stat-value">{correct}</div><div class="stat-label">CORRECT</div></div>
-    <div class="stat"><div class="stat-value">{total}</div><div class="stat-label">TOTAL</div></div>
-    <div class="stat"><div class="stat-value">{percent}%</div><div class="stat-label">ACCURACY</div></div>
+    <Stats value={correct} label="CORRECT" />
+    <Stats value={total} label="TOTAL" />
+    <Stats value={percent} label="ACCURACY" />
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="stat-value">{pot}</div><div class="stat-label">POT</div></div>
-    <div class="stat"><div class="stat-value">{bet}</div><div class="stat-label">BET</div></div>
-    <div class="stat"><div class="stat-value">{totalWinnings >= 0 ? '+' : ''}{totalWinnings}</div><div class="stat-label">WINNINGS</div></div>
+    <Stats value={pot} label="POT" />
+    <Stats value={bet} label="BET" />
+    <div class="stat">
+      <div class="stat-value">{totalWinnings >= 0 ? '+' : ''}{totalWinnings}</div>
+      <div class="stat-label">WINNINGS</div>
+    </div>
   </div>
 
   <div class="options">
-    <label class="checkbox"><input type="checkbox" bind:checked={skipTrivial} on:change={loadDeal}> Skip Trivial</label>
+    <label class="checkbox"><input type="checkbox" bind:checked={skipTrivial} on:change={handleLoadDeal}> Skip Trivial</label>
   </div>
 
   <div class="section">
@@ -272,78 +231,8 @@
   <div class={outcomeClass}>{outcomeText}</div>
   <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
 
-  <div class="deck-wrap">
-    <div class="deck-button">D</div>
-    <div class="deck-panel">
-      <div class="section">Deck: {deckState.totalCards} cards</div>
-      <div class="deck-ranks">
-        {#each (() => {
-          const entries = Object.entries(deckState.rankCounts || {});
-          const order = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-          return entries.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
-        })() as [rank, count]}
-          <div class="deck-rank-item">
-            <span class="deck-rank">{rank}</span>
-            <span class="deck-count">{count}</span>
-          </div>
-        {/each}
-      </div>
-    </div>
-  </div>
-
-  <div class="info-wrap">
-    <div class="info-button">i</div>
-    <div class="info-panel">
-      <div class="section">Hard Hands</div>
-      <table>
-        <tr>
-          {#each TABLE_HEADERS as header}
-            <th>{header}</th>
-          {/each}
-        </tr>
-        {#each HARD_MATRIX as row}
-          <tr>
-            <td>{row[0]}</td>
-            {#each rowDecisions(row) as decision}
-              <td class={decisionClass(decision)}>{decision}</td>
-            {/each}
-          </tr>
-        {/each}
-      </table>
-      <div class="section">Soft Hands</div>
-      <table>
-        <tr>
-          {#each TABLE_HEADERS as header}
-            <th>{header}</th>
-          {/each}
-        </tr>
-        {#each SOFT_MATRIX as row}
-          <tr>
-            <td>{row[0]}</td>
-            {#each rowDecisions(row) as decision}
-              <td class={decisionClass(decision)}>{decision}</td>
-            {/each}
-          </tr>
-        {/each}
-      </table>
-      <div class="section">Pairs</div>
-      <table>
-        <tr>
-          {#each TABLE_HEADERS as header}
-            <th>{header}</th>
-          {/each}
-        </tr>
-        {#each PAIR_MATRIX as row}
-          <tr>
-            <td>{row[0]}</td>
-            {#each rowDecisions(row) as decision}
-              <td class={decisionClass(decision)}>{decision}</td>
-            {/each}
-          </tr>
-        {/each}
-      </table>
-    </div>
-  </div>
+  <DeckPanel {deckState} />
+  <StrategyTable />
 </div>
 
 <style>
@@ -600,175 +489,4 @@
     background: #3a3a3a;
   }
 
-  .deck-wrap {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    width: 36px;
-    height: 36px;
-    z-index: 10;
-  }
-
-  .deck-button {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2px solid #555;
-    background: rgba(0, 0, 0, 0.4);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    position: relative;
-    z-index: 2;
-  }
-
-  .deck-panel {
-    width: 200px;
-    background: rgba(0, 0, 0, 0.92);
-    border: 2px solid #555;
-    border-radius: 12px;
-    padding: 16px;
-    font-size: 12px;
-    line-height: 1.4;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    position: absolute;
-    top: 0;
-    left: 44px;
-    visibility: hidden;
-  }
-
-  .deck-wrap:hover .deck-panel {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
-  }
-
-  .deck-panel .section {
-    font-weight: bold;
-    text-align: left;
-    padding: 6px 0 4px;
-    margin-bottom: 8px;
-  }
-
-  .deck-ranks {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-top: 8px;
-  }
-
-  .deck-rank-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-  }
-
-  .deck-rank {
-    font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 2px;
-  }
-
-  .deck-count {
-    font-size: 11px;
-    color: #888;
-  }
-
-  .info-wrap {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    width: 36px;
-    height: 36px;
-    z-index: 10;
-  }
-
-  .info-button {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2px solid #555;
-    background: rgba(0, 0, 0, 0.4);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    position: relative;
-    z-index: 2;
-  }
-
-  .info-panel {
-    width: 320px;
-    background: rgba(0, 0, 0, 0.92);
-    border: 2px solid #555;
-    border-radius: 12px;
-    padding: 16px;
-    font-size: 12px;
-    line-height: 1.4;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    position: absolute;
-    top: 0;
-    right: 44px;
-    visibility: hidden;
-  }
-
-  .info-wrap:hover .info-panel {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
-  }
-
-  .info-panel table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 12px;
-  }
-
-  .info-panel th,
-  .info-panel td {
-    padding: 4px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 11px;
-  }
-
-  .info-panel .section {
-    font-weight: bold;
-    text-align: left;
-    padding: 6px 0 4px;
-  }
-
-  .cell-stand {
-    background: #7b1f1f;
-    color: #fff;
-  }
-
-  .cell-hit {
-    background: #2d4f2d;
-    color: #fff;
-  }
-
-  .cell-double {
-    background: #7b6b1f;
-    color: #fff;
-  }
-
-  .cell-split {
-    background: #1f3f7b;
-    color: #fff;
-  }
 </style>
