@@ -11,11 +11,12 @@ import (
 var ErrInvalidSplit = errors.New("invalid split")
 
 type RoundState struct {
-	Player    []card.Card
-	Dealer    card.Card
-	Queue     [][]card.Card
-	Completed [][]card.Card
-	Outcomes  []string
+	Player      []card.Card
+	Dealer      card.Card
+	Queue       [][]card.Card
+	Completed   [][]card.Card
+	Outcomes    []string
+	HandBets    []int
 }
 
 type RoundResolution struct {
@@ -23,6 +24,7 @@ type RoundResolution struct {
 	Outcome       string
 	RoundComplete bool
 	DealerCards   []card.Card
+	CurrentHandBet int
 }
 
 func NewRoundState(player []card.Card, dealer card.Card, queued [][]card.Card, completed [][]card.Card, outcomes []string) RoundState {
@@ -32,27 +34,29 @@ func NewRoundState(player []card.Card, dealer card.Card, queued [][]card.Card, c
 		Queue:     cloneHands(queued),
 		Completed: cloneHands(completed),
 		Outcomes:  append([]string{}, outcomes...),
+		HandBets:  make([]int, len(completed)),
 	}
 }
 
-func ApplyDecision(state RoundState, decision strategy.Decision, engine *Engine) (RoundResolution, error) {
+func ApplyDecision(state RoundState, decision strategy.Decision, engine *Engine, bet int) (RoundResolution, error) {
 	switch decision {
 	case strategy.Hit:
-		return applyHit(state, engine), nil
+		return applyHit(state, engine, bet), nil
 	case strategy.DoubleDown:
-		return applyDouble(state, engine), nil
+		return applyDouble(state, engine, bet), nil
 	case strategy.Stand:
-		return applyStand(state, engine), nil
+		return applyStand(state, engine, bet), nil
 	case strategy.Split:
-		return applySplit(state, engine)
+		return applySplit(state, engine, bet)
 	default:
 		return RoundResolution{}, errors.New("unsupported decision")
 	}
 }
 
-func applyHit(state RoundState, engine *Engine) RoundResolution {
+func applyHit(state RoundState, engine *Engine, bet int) RoundResolution {
 	res := newResolution(state)
 	res.State.Player = append(res.State.Player, engine.DrawCard())
+	res.CurrentHandBet = bet
 
 	playerHand := hand.NewHand(res.State.Player)
 	if playerHand.IsBust() {
@@ -65,10 +69,11 @@ func applyHit(state RoundState, engine *Engine) RoundResolution {
 	return finalize(res, engine)
 }
 
-func applyDouble(state RoundState, engine *Engine) RoundResolution {
+func applyDouble(state RoundState, engine *Engine, bet int) RoundResolution {
 	res := newResolution(state)
 	res.State.Player = append(res.State.Player, engine.DrawCard())
 	res.RoundComplete = true
+	res.CurrentHandBet = bet * 2
 
 	if hand.NewHand(res.State.Player).IsBust() {
 		res.Outcome = "Bust"
@@ -77,13 +82,14 @@ func applyDouble(state RoundState, engine *Engine) RoundResolution {
 	return finalize(res, engine)
 }
 
-func applyStand(state RoundState, engine *Engine) RoundResolution {
+func applyStand(state RoundState, engine *Engine, bet int) RoundResolution {
 	res := newResolution(state)
 	res.RoundComplete = true
+	res.CurrentHandBet = bet
 	return finalize(res, engine)
 }
 
-func applySplit(state RoundState, engine *Engine) (RoundResolution, error) {
+func applySplit(state RoundState, engine *Engine, bet int) (RoundResolution, error) {
 	if !hand.NewHand(state.Player).CanSplit() {
 		return RoundResolution{}, ErrInvalidSplit
 	}
@@ -94,6 +100,7 @@ func applySplit(state RoundState, engine *Engine) (RoundResolution, error) {
 
 	res.State.Player = first
 	res.State.Queue = append([][]card.Card{second}, res.State.Queue...)
+	res.CurrentHandBet = bet
 	res.DealerCards = []card.Card{res.State.Dealer}
 
 	return res, nil
@@ -107,10 +114,14 @@ func finalize(res RoundResolution, engine *Engine) RoundResolution {
 		return res
 	}
 
-	res.State = appendCompleted(res.State, res.Outcome)
+	bet := res.CurrentHandBet
+	if bet == 0 {
+		bet = 10
+	}
+	res.State = appendCompleted(res.State, res.Outcome, bet)
 
 	if len(res.State.Queue) > 0 {
-		res = advanceQueue(res)
+		res = advanceQueue(res, bet)
 	} else if engine != nil {
 		res = settleDealer(res, engine)
 	}
@@ -123,6 +134,8 @@ func finalize(res RoundResolution, engine *Engine) RoundResolution {
 }
 
 func newResolution(state RoundState) RoundResolution {
+	bets := make([]int, len(state.HandBets))
+	copy(bets, state.HandBets)
 	return RoundResolution{
 		State: RoundState{
 			Player:    cloneCards(state.Player),
@@ -130,11 +143,12 @@ func newResolution(state RoundState) RoundResolution {
 			Queue:     cloneHands(state.Queue),
 			Completed: cloneHands(state.Completed),
 			Outcomes:  append([]string{}, state.Outcomes...),
+			HandBets:  bets,
 		},
 	}
 }
 
-func appendCompleted(state RoundState, outcome string) RoundState {
+func appendCompleted(state RoundState, outcome string, bet int) RoundState {
 	current := cloneCards(state.Player)
 	state.Completed = append(state.Completed, current)
 
@@ -143,15 +157,17 @@ func appendCompleted(state RoundState, outcome string) RoundState {
 	}
 
 	state.Outcomes = append(state.Outcomes, outcome)
+	state.HandBets = append(state.HandBets, bet)
 	return state
 }
 
-func advanceQueue(res RoundResolution) RoundResolution {
+func advanceQueue(res RoundResolution, bet int) RoundResolution {
 	next := cloneCards(res.State.Queue[0])
 	res.State.Queue = cloneHands(res.State.Queue[1:])
 	res.State.Player = next
 	res.RoundComplete = false
 	res.Outcome = ""
+	res.CurrentHandBet = bet
 	res.DealerCards = []card.Card{res.State.Dealer}
 	return res
 }
@@ -164,6 +180,10 @@ func settleDealer(res RoundResolution, engine *Engine) RoundResolution {
 		if res.State.Outcomes[i] == "" && i < len(outcomes) {
 			res.State.Outcomes[i] = outcomes[i]
 		}
+	}
+
+	for i := len(res.State.Outcomes); i < len(outcomes); i++ {
+		res.State.Outcomes = append(res.State.Outcomes, outcomes[i])
 	}
 
 	res.Outcome = FormatOutcomeSummary(res.State.Outcomes)

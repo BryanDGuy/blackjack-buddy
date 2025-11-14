@@ -41,6 +41,7 @@ type checkResponse struct {
 	RoundWinnings     int                   `json:"roundWinnings"`
 	TotalWinnings     int                   `json:"totalWinnings"`
 	DeckState         game.DeckState         `json:"deckState"`
+	Hint              string                  `json:"hint"`
 }
 
 func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
@@ -121,16 +122,26 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 			response.RoundComplete = true
 			response.Restart = true
 			response.DealerCards = helpers.CardsToStrings(dealerHand.Cards)
-			roundWinnings := game.CalculateWinnings(state.Outcomes, bet)
+			handBets := state.HandBets
+			if len(handBets) == 0 {
+				handBets = make([]int, len(state.Outcomes))
+				for i := range handBets {
+					handBets[i] = bet
+				}
+			}
+			roundWinnings := game.CalculateWinnings(state.Outcomes, handBets)
 			response.RoundWinnings = roundWinnings
 			response.TotalWinnings = totalWinnings + roundWinnings
 			response.Pot = pot + roundWinnings
 			response.DeckState = engine.GetDeckState()
+			if hintDecision, err := advisor.MakeDecision(playerHand, dealerHand); err == nil {
+				response.Hint = hintDecision.ToString()
+			}
 			writeJSON(w, response)
 			return
 		}
 
-		resolution, err := game.ApplyDecision(state, userDecision, engine)
+		resolution, err := game.ApplyDecision(state, userDecision, engine, bet)
 		if err != nil {
 			if errors.Is(err, game.ErrInvalidSplit) {
 				http.Error(w, "Invalid split", http.StatusBadRequest)
@@ -149,13 +160,26 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 		response.RoundComplete = resolution.RoundComplete
 
 		if resolution.RoundComplete {
-			roundWinnings := game.CalculateWinnings(resolution.State.Outcomes, bet)
+			handBets := resolution.State.HandBets
+			if len(handBets) == 0 {
+				handBets = make([]int, len(resolution.State.Outcomes))
+				for i := range handBets {
+					handBets[i] = bet
+				}
+			}
+			roundWinnings := game.CalculateWinnings(resolution.State.Outcomes, handBets)
 			response.RoundWinnings = roundWinnings
 			response.TotalWinnings = totalWinnings + roundWinnings
 			response.Pot = pot + roundWinnings
 		}
 
 		response.DeckState = engine.GetDeckState()
+
+		currentPlayerHand := hand.NewHand(resolution.State.Player)
+		currentDealerHand := hand.NewHand([]card.Card{resolution.State.Dealer})
+		if hintDecision, err := advisor.MakeDecision(currentPlayerHand, currentDealerHand); err == nil {
+			response.Hint = hintDecision.ToString()
+		}
 
 		writeJSON(w, response)
 	}

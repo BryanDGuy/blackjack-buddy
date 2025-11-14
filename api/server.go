@@ -41,8 +41,9 @@ func (s *server) handleUI(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) Start(port int) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/scenario", handler.NewScenario(s.engine))
+	mux.HandleFunc("/api/scenario", handler.NewScenario(s.engine, s.advisor))
 	mux.HandleFunc("/api/check", handler.NewCheck(s.advisor, s.engine))
+	mux.HandleFunc("/api/hint", handler.NewHint(s.advisor))
 
 	fileServer := http.FileServer(http.FS(s.ui))
 	mux.Handle("/assets/", fileServer)

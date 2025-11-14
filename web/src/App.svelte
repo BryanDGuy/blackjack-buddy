@@ -22,6 +22,7 @@
   let totalWinnings = 0;
   let roundWinnings = 0;
   let deckState = { totalCards: 0, rankCounts: {} };
+  let hint = '';
   let resultText = 'Result: -';
   let resultClass = 'result';
   let outcomeText = 'Outcome: -';
@@ -32,6 +33,30 @@
 
   $: percent = total > 0 ? Math.round((correct / total) * 100) : 0;
   $: derivedDealerCards = dealerCards.length ? dealerCards : dealerCard ? [dealerCard] : [];
+  
+  let hintKey = '';
+  $: {
+    const newKey = `${playerCards.join(',')}-${dealerCard}`;
+    if (newKey !== hintKey && playerCards.length && dealerCard && !locked) {
+      hintKey = newKey;
+      updateHint();
+    }
+  }
+  
+  async function updateHint() {
+    if (!playerCards.length || !dealerCard || locked) return;
+    try {
+      const res = await fetch('/api/hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerCards, dealerCard })
+      });
+      const data = await res.json();
+      hint = data.hint || '';
+    } catch (e) {
+      hint = '';
+    }
+  }
 
   const rowDecisions = (row) => row.slice(1);
 
@@ -67,6 +92,7 @@
     bet = data.bet || 10;
     roundWinnings = 0;
     if (data.deckState) deckState = data.deckState;
+    hint = data.hint || '';
     resultText = 'Result: -';
     resultClass = 'result';
     outcomeText = 'Outcome: -';
@@ -109,6 +135,7 @@
       if (result.roundWinnings !== undefined) roundWinnings = result.roundWinnings;
       if (result.totalWinnings !== undefined) totalWinnings = result.totalWinnings;
       if (result.deckState) deckState = result.deckState;
+      if (result.hint !== undefined) hint = result.hint;
 
       resultClass = `result ${result.correct ? 'correct' : 'incorrect'}`;
       resultText = `${result.correct ? 'Correct' : 'Incorrect'}: ${result.correctDecision}`;
@@ -226,11 +253,19 @@
     </div>
   </div>
 
-  <div class="buttons">
-    <button on:click={() => decide('HIT')} disabled={locked || busy}>HIT (H)</button>
-    <button on:click={() => decide('STAND')} disabled={locked || busy}>STAND (S)</button>
-    <button on:click={() => decide('DOUBLE DOWN')} disabled={locked || busy}>DOUBLE DOWN (D)</button>
-    <button on:click={() => decide('SPLIT')} disabled={locked || busy}>SPLIT (P)</button>
+  <div class="buttons-section">
+    <div class="buttons">
+      <button on:click={() => decide('HIT')} disabled={locked || busy}>HIT (H)</button>
+      <button on:click={() => decide('STAND')} disabled={locked || busy}>STAND (S)</button>
+      <button on:click={() => decide('DOUBLE DOWN')} disabled={locked || busy}>DOUBLE DOWN (D)</button>
+      <button on:click={() => decide('SPLIT')} disabled={locked || busy}>SPLIT (P)</button>
+    </div>
+    {#if hint}
+      <div class="hint-wrap">
+        <div class="hint-button">?</div>
+        <div class="hint-panel hint-{hint.toLowerCase().replace(/\s+/g, '-')}">Hint: {hint}</div>
+      </div>
+    {/if}
   </div>
 
   <div class={resultClass}>{resultText}</div>
@@ -409,10 +444,86 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 
+  .buttons-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
   .buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
+  }
+
+  .hint-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .hint-button {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #555;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 2;
+  }
+
+  .hint-panel {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    border: 2px solid;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #fff;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    visibility: hidden;
+    z-index: 10;
+  }
+
+  .hint-button:hover + .hint-panel {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  .hint-hit {
+    background: #2d4f2d;
+    border-color: #2d4f2d;
+  }
+
+  .hint-stand {
+    background: #7b1f1f;
+    border-color: #7b1f1f;
+  }
+
+  .hint-double-down {
+    background: #7b6b1f;
+    border-color: #7b6b1f;
+  }
+
+  .hint-split {
+    background: #1f3f7b;
+    border-color: #1f3f7b;
   }
 
   button {

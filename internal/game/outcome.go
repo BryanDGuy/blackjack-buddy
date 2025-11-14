@@ -39,9 +39,16 @@ func FormatOutcomeSummary(outcomes []string) string {
 	return strings.Join(parts, " | ")
 }
 
-func CalculateWinnings(outcomes []string, bet int) int {
+func CalculateWinnings(outcomes []string, handBets []int) int {
 	total := 0
-	for _, outcome := range outcomes {
+	for i, outcome := range outcomes {
+		if outcome == "" {
+			continue
+		}
+		bet := 10
+		if i < len(handBets) && handBets[i] > 0 {
+			bet = handBets[i]
+		}
 		switch outcome {
 		case "Blackjack":
 			total += bet*3/2 + bet
