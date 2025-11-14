@@ -11,19 +11,19 @@ import (
 var ErrInvalidSplit = errors.New("invalid split")
 
 type RoundState struct {
-	Player      []card.Card
-	Dealer      card.Card
-	Queue       [][]card.Card
-	Completed   [][]card.Card
-	Outcomes    []string
-	HandBets    []int
+	Player    []card.Card
+	Dealer    card.Card
+	Queue     [][]card.Card
+	Completed [][]card.Card
+	Outcomes  []string
+	HandBets  []int
 }
 
 type RoundResolution struct {
-	State         RoundState
-	Outcome       string
-	RoundComplete bool
-	DealerCards   []card.Card
+	State          RoundState
+	Outcome        string
+	RoundComplete  bool
+	DealerCards    []card.Card
 	CurrentHandBet int
 }
 

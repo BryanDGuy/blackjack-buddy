@@ -10,7 +10,7 @@ import (
 
 const (
 	StartingPot = 1000
-	DefaultBet = 10
+	DefaultBet  = 10
 )
 
 func InitialOutcomes(hands [][]card.Card) []string {

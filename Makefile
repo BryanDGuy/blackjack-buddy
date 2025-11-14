@@ -6,7 +6,7 @@ BINARY_NAME=blackjack-buddy
 WEB_DIR=web
 API_DIR=api
 
-.PHONY: all build clean run ui-build ui-install api-build help
+.PHONY: all build clean run ui-build ui-install api-build lint ui-lint api-lint help
 
 all: build
 
@@ -25,6 +25,15 @@ build: ui-build
 run: build
 	./$(BINARY_NAME)
 
+ui-lint:
+	npm run lint --prefix $(WEB_DIR)
+
+api-lint:
+	golangci-lint run ./...
+
+lint: ui-lint
+	$(MAKE) api-lint
+
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
@@ -35,6 +44,10 @@ help:
 	@echo "Available targets:"
 	@echo "  build  - Build Go server and web bundle"
 	@echo "  api-build - Build Go server only"
+	@echo "  ui-build - Build Svelte UI only"
 	@echo "  run    - Build then start the server"
+	@echo "  lint   - Run static analysis (Go and UI)"
+	@echo "  api-lint - Run Go static analysis"
+	@echo "  ui-lint - Run UI static analysis"
 	@echo "  clean  - Remove build artifacts"
 	@echo "  help   - Show this help"
