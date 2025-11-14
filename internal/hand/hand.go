@@ -12,8 +12,11 @@ type Hand struct {
 }
 
 func NewHand(cards []card.Card) *Hand {
+	c := make([]card.Card, len(cards))
+	copy(c, cards)
+
 	return &Hand{
-		Cards: append([]card.Card{}, cards...),
+		Cards: c,
 	}
 }
 
@@ -33,29 +36,6 @@ func (h *Hand) IsEmpty() bool {
 	return len(h.Cards) == 0
 }
 
-func (h *Hand) Value() int {
-	total := 0
-	aces := 0
-
-	for _, c := range h.Cards {
-		if c.Rank == card.Ace {
-			aces++
-		} else {
-			total += c.Value()
-		}
-	}
-
-	for i := 0; i < aces; i++ {
-		if total+11 <= 21 {
-			total += 11
-		} else {
-			total += 1
-		}
-	}
-
-	return total
-}
-
 func (h *Hand) IsBust() bool {
 	return h.Value() > 21
 }
@@ -64,8 +44,36 @@ func (h *Hand) IsBlackjack() bool {
 	return len(h.Cards) == 2 && h.Value() == 21
 }
 
+func (h *Hand) CanSplit() bool {
+	if len(h.Cards) != 2 {
+		return false
+	}
+
+	return h.Cards[0].Rank == h.Cards[1].Rank
+}
+
+func (h *Hand) Value() int {
+	total := 0
+	aces := 0
+
+	for _, c := range h.Cards {
+		total += c.Value()
+
+		if c.Rank == card.Ace {
+			aces++
+		}
+	}
+
+	for total > 21 && aces > 0 {
+		total -= 10
+		aces--
+	}
+
+	return total
+}
+
 func (h *Hand) IsSoft() bool {
-	if h.IsEmpty() || h.IsBust() {
+	if h.IsEmpty() || h.IsBust() || h.IsBlackjack() {
 		return false
 	}
 
@@ -80,19 +88,12 @@ func (h *Hand) IsSoft() bool {
 		}
 	}
 
-	if aces > 0 && total+11+aces-1 <= 21 {
-		return true
-	}
-
-	return false
-}
-
-func (h *Hand) CanSplit() bool {
-	if len(h.Cards) != 2 {
+	if aces == 0 {
 		return false
 	}
 
-	return h.Cards[0].Rank == h.Cards[1].Rank
+	oneAceAs11 := total + 11 + (aces - 1)
+	return oneAceAs11 <= 21
 }
 
 type HandType int
