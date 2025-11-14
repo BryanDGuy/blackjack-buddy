@@ -22,6 +22,8 @@
   let outcomeText = 'Outcome: -';
   let outcomeClass = 'result outcome-box';
   let nextVisible = false;
+  let busy = false;
+  let locked = false;
 
   $: percent = total > 0 ? Math.round((correct / total) * 100) : 0;
   $: derivedDealerCards = dealerCards.length ? dealerCards : dealerCard ? [dealerCard] : [];
@@ -61,52 +63,76 @@
     outcomeText = 'Outcome: -';
     outcomeClass = 'result outcome-box';
     nextVisible = false;
+    locked = false;
   }
 
   async function decide(decision) {
-    const res = await fetch('/api/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        playerCards,
-        dealerCard,
-        decision,
-        queuedHands,
-        completedHands
-      })
-    });
-    const result = await res.json();
-
-    total += 1;
-    if (result.correct) {
-      correct += 1;
+    if (locked || busy) {
+      return;
     }
 
-    resultClass = `result ${result.correct ? 'correct' : 'incorrect'}`;
-    resultText = `${result.correct ? 'Correct' : 'Incorrect'}: ${result.correctDecision}`;
-    outcomeClass = 'result outcome-box';
-    outcomeText = result.outcome ? `Outcome: ${result.outcome}` : 'Outcome: -';
+    busy = true;
 
-    if (!result.correct || result.restart) {
-      nextVisible = true;
-    }
+    try {
+      const res = await fetch('/api/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerCards,
+          dealerCard,
+          decision,
+          queuedHands,
+          completedHands
+        })
+      });
+      const result = await res.json();
 
-    if (Array.isArray(result.playerCards) && result.playerCards.length) {
-      playerCards = result.playerCards;
-    }
-    if (Array.isArray(result.dealerCards) && result.dealerCards.length) {
-      dealerCards = result.dealerCards;
-    }
+      total += 1;
+      if (result.correct) {
+        correct += 1;
+      }
 
-    queuedHands = Array.isArray(result.queuedHands) ? result.queuedHands : [];
-    completedHands = Array.isArray(result.completedHands) ? result.completedHands : [];
-    completedOutcomes = Array.isArray(result.completedOutcomes) ? result.completedOutcomes : [];
+      resultClass = `result ${result.correct ? 'correct' : 'incorrect'}`;
+      resultText = `${result.correct ? 'Correct' : 'Incorrect'}: ${result.correctDecision}`;
+      outcomeClass = 'result outcome-box';
+      outcomeText = result.outcome ? `Outcome: ${result.outcome}` : 'Outcome: -';
 
-    if (result.roundComplete && queuedHands.length === 0 && result.correct && !result.restart) {
-      nextVisible = true;
+      if (!result.correct || result.restart) {
+        nextVisible = true;
+      }
+
+      if (Array.isArray(result.playerCards) && result.playerCards.length) {
+        playerCards = result.playerCards;
+      }
+      if (Array.isArray(result.dealerCards) && result.dealerCards.length) {
+        dealerCards = result.dealerCards;
+      }
+
+      queuedHands = Array.isArray(result.queuedHands) ? result.queuedHands : [];
+      completedHands = Array.isArray(result.completedHands) ? result.completedHands : [];
+      completedOutcomes = Array.isArray(result.completedOutcomes) ? result.completedOutcomes : [];
+
+      if (result.roundComplete && queuedHands.length === 0 && result.correct && !result.restart) {
+        nextVisible = true;
+      }
+      if (!result.roundComplete && result.correct && !result.restart) {
+        nextVisible = false;
+      }
+    } finally {
+      locked = nextVisible;
+      busy = false;
     }
-    if (!result.roundComplete && result.correct && !result.restart) {
-      nextVisible = false;
+  }
+
+  async function startNextRound() {
+    if (!nextVisible || busy) {
+      return;
+    }
+    busy = true;
+    try {
+      await loadScenario();
+    } finally {
+      busy = false;
     }
   }
 
@@ -119,9 +145,10 @@
     if (!action) return;
     event.preventDefault();
     if (action === 'NEXT') {
-      if (nextVisible) {
-        loadScenario();
-      }
+      startNextRound();
+      return;
+    }
+    if (locked || busy) {
       return;
     }
     decide(action);
@@ -164,15 +191,15 @@
   </div>
 
   <div class="buttons">
-    <button on:click={() => decide('HIT')}>HIT (H)</button>
-    <button on:click={() => decide('STAND')}>STAND (S)</button>
-    <button on:click={() => decide('DOUBLE DOWN')}>DOUBLE DOWN (D)</button>
-    <button on:click={() => decide('SPLIT')}>SPLIT (P)</button>
+    <button on:click={() => decide('HIT')} disabled={locked || busy}>HIT (H)</button>
+    <button on:click={() => decide('STAND')} disabled={locked || busy}>STAND (S)</button>
+    <button on:click={() => decide('DOUBLE DOWN')} disabled={locked || busy}>DOUBLE DOWN (D)</button>
+    <button on:click={() => decide('SPLIT')} disabled={locked || busy}>SPLIT (P)</button>
   </div>
 
   <div class={resultClass}>{resultText}</div>
   <div class={outcomeClass}>{outcomeText}</div>
-  <button class="next-btn" class:visible={nextVisible} on:click={loadScenario}>Next (N)</button>
+  <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
 
   <div class="info-wrap">
     <div class="info-button">i</div>
