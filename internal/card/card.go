@@ -3,8 +3,7 @@ package card
 type Rank int
 
 const (
-	Ace Rank = iota
-	Two
+	Two Rank = iota
 	Three
 	Four
 	Five
@@ -16,6 +15,7 @@ const (
 	Jack
 	Queen
 	King
+	Ace
 )
 
 type Card struct {

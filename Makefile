@@ -6,7 +6,7 @@ BINARY_NAME=blackjack-buddy
 WEB_DIR=web
 API_DIR=api
 
-.PHONY: all build clean run ui-build ui-install api-build lint ui-lint api-lint help
+.PHONY: all build clean run ui-build ui-install api-build lint ui-lint api-lint test ui-test api-test help
 
 all: build
 
@@ -34,6 +34,15 @@ api-lint:
 lint: ui-lint
 	$(MAKE) api-lint
 
+api-test:
+	$(GOCMD) test ./...
+
+ui-test:
+	npm test --prefix $(WEB_DIR)
+
+test: api-test
+	$(MAKE) ui-test
+
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
@@ -49,5 +58,8 @@ help:
 	@echo "  lint   - Run static analysis (Go and UI)"
 	@echo "  api-lint - Run Go static analysis"
 	@echo "  ui-lint - Run UI static analysis"
+	@echo "  test   - Run tests (Go and UI)"
+	@echo "  api-test - Run Go tests"
+	@echo "  ui-test - Run UI tests"
 	@echo "  clean  - Remove build artifacts"
 	@echo "  help   - Show this help"

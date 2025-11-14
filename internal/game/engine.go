@@ -27,9 +27,9 @@ func NewEngine(rng *rand.Rand) *Engine {
 func (e *Engine) initializeDeck() {
 	e.deck = make([]card.Card, 0, decksInShoe*cardsPerDeck)
 	ranks := []card.Rank{
-		card.Ace, card.Two, card.Three, card.Four, card.Five,
+		card.Two, card.Three, card.Four, card.Five,
 		card.Six, card.Seven, card.Eight, card.Nine, card.Ten,
-		card.Jack, card.Queen, card.King,
+		card.Jack, card.Queen, card.King, card.Ace,
 	}
 
 	for i := 0; i < decksInShoe; i++ {
