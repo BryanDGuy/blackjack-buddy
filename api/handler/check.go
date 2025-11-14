@@ -93,17 +93,6 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 
 		state := game.NewRoundState(playerCards, dealerCard, queuedHands, completedHands, game.InitialOutcomes(completedHands))
 
-		response := checkResponse{
-			Correct:         userDecision == correctDecision,
-			CorrectDecision: correctDecision.ToString(),
-			UserDecision:    userDecision.ToString(),
-			PlayerCards:     helpers.CardsToStrings(playerCards),
-			QueuedHands:     helpers.HandsToStrings(queuedHands),
-			CompletedHands:  helpers.HandsToStrings(completedHands),
-		}
-
-		response.CompletedOutcomes = append([]string{}, state.Outcomes...)
-
 		bet := req.Bet
 		if bet <= 0 {
 			bet = game.DefaultBet
@@ -114,20 +103,34 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 		}
 		totalWinnings := req.TotalWinnings
 
-		response.Bet = bet
-		response.Pot = pot
-		response.TotalWinnings = totalWinnings
+		response := checkResponse{
+			Correct:           userDecision == correctDecision,
+			CorrectDecision:   correctDecision.ToString(),
+			UserDecision:      userDecision.ToString(),
+			PlayerCards:       helpers.CardsToStrings(playerCards),
+			DealerCards:       []string{},
+			QueuedHands:       helpers.HandsToStrings(queuedHands),
+			CompletedHands:    helpers.HandsToStrings(completedHands),
+			CompletedOutcomes: append([]string{}, state.Outcomes...),
+			Outcome:           "",
+			RoundComplete:     false,
+			Restart:           false,
+			Pot:               pot,
+			Bet:               bet,
+			RoundWinnings:     0,
+			TotalWinnings:     totalWinnings,
+			DeckState:         game.DeckState{},
+			Hint:              "",
+		}
 
 		if !response.Correct {
 			response.RoundComplete = true
 			response.Restart = true
 			response.DealerCards = helpers.CardsToStrings(dealerHand.Cards)
-			handBets := state.HandBets
-			if len(handBets) == 0 {
-				handBets = make([]int, len(state.Outcomes))
-				for i := range handBets {
-					handBets[i] = bet
-				}
+			handBets := make([]int, len(state.HandBets))
+			copy(handBets, state.HandBets)
+			for len(handBets) < len(state.Outcomes) {
+				handBets = append(handBets, bet)
 			}
 			roundWinnings := game.CalculateWinnings(state.Outcomes, handBets)
 			response.RoundWinnings = roundWinnings
@@ -159,12 +162,10 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 		response.RoundComplete = resolution.RoundComplete
 
 		if resolution.RoundComplete {
-			handBets := resolution.State.HandBets
-			if len(handBets) == 0 {
-				handBets = make([]int, len(resolution.State.Outcomes))
-				for i := range handBets {
-					handBets[i] = bet
-				}
+			handBets := make([]int, len(resolution.State.HandBets))
+			copy(handBets, resolution.State.HandBets)
+			for len(handBets) < len(resolution.State.Outcomes) {
+				handBets = append(handBets, bet)
 			}
 			roundWinnings := game.CalculateWinnings(resolution.State.Outcomes, handBets)
 			response.RoundWinnings = roundWinnings

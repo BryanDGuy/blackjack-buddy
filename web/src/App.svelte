@@ -46,15 +46,15 @@
 
   async function handleLoadDeal() {
     const data = await loadDeal(skipTrivial);
-    playerCards = data.playerCards || [];
-    dealerCard = data.dealerCard || '';
+    playerCards = data.playerCards;
+    dealerCard = data.dealerCard;
     dealerCards = dealerCard ? [dealerCard] : [];
     queuedHands = [];
     completedHands = [];
-    if (total === 0) pot = data.pot || 1000;
-    bet = data.bet || 10;
-    if (data.deckState) deckState = data.deckState;
-    hint = data.hint || '';
+    if (total === 0) pot = data.pot;
+    bet = data.bet;
+    deckState = data.deckState;
+    hint = data.hint;
     resultText = 'Result: -';
     resultClass = 'result';
     outcomeText = 'Outcome: -';
@@ -87,23 +87,23 @@
         correct += 1;
       }
 
-      if (result.pot !== undefined) pot = result.pot;
-      if (result.bet !== undefined) bet = result.bet;
-      if (result.totalWinnings !== undefined) totalWinnings = result.totalWinnings;
-      if (result.deckState) deckState = result.deckState;
-      if (result.hint !== undefined) hint = result.hint;
+      pot = result.pot;
+      bet = result.bet;
+      totalWinnings = result.totalWinnings;
+      deckState = result.deckState;
+      hint = result.hint;
 
       resultClass = `result ${result.correct ? 'correct' : 'incorrect'}`;
       resultText = `${result.correct ? 'Correct' : 'Incorrect'}: ${result.correctDecision}`;
       outcomeClass = 'result outcome-box';
       if (result.outcome) {
         let winningsText = '';
-        if (result.roundComplete && result.roundWinnings !== undefined) {
+        if (result.roundComplete) {
           const sign = result.roundWinnings >= 0 ? '+' : '';
           winningsText = ` (${sign}${result.roundWinnings})`;
         }
         outcomeText = `Outcome: ${result.outcome}${winningsText}`;
-      } else if (result.roundComplete && result.roundWinnings !== undefined) {
+      } else if (result.roundComplete) {
         const sign = result.roundWinnings >= 0 ? '+' : '';
         outcomeText = `Outcome: (${sign}${result.roundWinnings})`;
       } else {

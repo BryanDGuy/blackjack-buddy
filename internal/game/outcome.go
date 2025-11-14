@@ -45,7 +45,7 @@ func CalculateWinnings(outcomes []string, handBets []int) int {
 		if outcome == "" {
 			continue
 		}
-		bet := 10
+		bet := DefaultBet
 		if i < len(handBets) && handBets[i] > 0 {
 			bet = handBets[i]
 		}

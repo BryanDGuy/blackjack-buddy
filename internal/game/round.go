@@ -116,18 +116,14 @@ func finalize(res RoundResolution, engine *Engine) RoundResolution {
 
 	bet := res.CurrentHandBet
 	if bet == 0 {
-		bet = 10
+		bet = DefaultBet
 	}
 	res.State = appendCompleted(res.State, res.Outcome, bet)
 
 	if len(res.State.Queue) > 0 {
 		res = advanceQueue(res, bet)
-	} else if engine != nil {
+	} else {
 		res = settleDealer(res, engine)
-	}
-
-	if len(res.DealerCards) == 0 {
-		res.DealerCards = []card.Card{res.State.Dealer}
 	}
 
 	return res
@@ -145,6 +141,7 @@ func newResolution(state RoundState) RoundResolution {
 			Outcomes:  append([]string{}, state.Outcomes...),
 			HandBets:  bets,
 		},
+		DealerCards: []card.Card{state.Dealer},
 	}
 }
 
@@ -184,6 +181,9 @@ func settleDealer(res RoundResolution, engine *Engine) RoundResolution {
 
 	for i := len(res.State.Outcomes); i < len(outcomes); i++ {
 		res.State.Outcomes = append(res.State.Outcomes, outcomes[i])
+		if len(res.State.HandBets) <= i {
+			res.State.HandBets = append(res.State.HandBets, res.CurrentHandBet)
+		}
 	}
 
 	res.Outcome = FormatOutcomeSummary(res.State.Outcomes)
