@@ -108,20 +108,13 @@ func applySplit(state RoundState, engine *Engine, bet int) (RoundResolution, err
 
 func finalize(res RoundResolution, engine *Engine) RoundResolution {
 	if !res.RoundComplete {
-		if len(res.DealerCards) == 0 {
-			res.DealerCards = []card.Card{res.State.Dealer}
-		}
 		return res
 	}
 
-	bet := res.CurrentHandBet
-	if bet == 0 {
-		bet = DefaultBet
-	}
-	res.State = appendCompleted(res.State, res.Outcome, bet)
+	res.State = appendCompleted(res.State, res.Outcome, res.CurrentHandBet)
 
 	if len(res.State.Queue) > 0 {
-		res = advanceQueue(res, bet)
+		res = advanceQueue(res, res.CurrentHandBet)
 	} else {
 		res = settleDealer(res, engine)
 	}
