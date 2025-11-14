@@ -1,6 +1,8 @@
 # Blackjack Buddy
 
-Blackjack decision assistant implementing basic strategy. Minimal Go HTTP server with an embedded Svelte trainer.
+Blackjack decision assistant implementing basic strategy. Minimal Go HTTP server with an embedded Svelte UI training module.
+
+![Blackjack Buddy UI](web-ui.png)
 
 ## Features
 
@@ -27,17 +29,16 @@ make build
 ./blackjack-buddy [-port=8080] [-strategy=basic]
 ```
 
-The binary hosts the HTTP API and embedded trainer. Strategy flag accepts any value from `internal/strategy/strategies` (e.g. `basic`, `coward`).
+The binary hosts the HTTP API and embedded trainer UI. Strategy flag accepts any value from `internal/strategy/strategies` (e.g., `basic`, `coward`).
 
 ## Development
 
-- `make ui-build` — rebuild the Svelte trainer only
+- `make ui-build` — rebuild the Svelte UI only
 - `make api-build` — compile the Go server only
 - `make run` — build everything then start the server
 
 ## Structure
 
 - `api/` — HTTP server, handlers, helpers, embedded assets
-- `internal/game` — deal generation, round resolution, deck management
-- `internal/strategy` — advisor + strategy matrices
+- `internal/` — internal packages intended to be shared amongst layers
 - `web/` — TypeScript Svelte trainer UI with components
