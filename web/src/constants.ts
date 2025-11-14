@@ -1,4 +1,4 @@
-export const KEY_BINDINGS = {
+export const KEY_BINDINGS: Record<string, string> = {
   h: 'HIT',
   s: 'STAND',
   d: 'DOUBLE DOWN',
@@ -6,9 +6,9 @@ export const KEY_BINDINGS = {
   n: 'NEXT'
 };
 
-export const TABLE_HEADERS = ['', 'A', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+export const TABLE_HEADERS: string[] = ['', 'A', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-export const HARD_MATRIX = [
+export const HARD_MATRIX: string[][] = [
   ['17+', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S'],
   ['16', 'H', 'H', 'H', 'H', 'H', 'S', 'S', 'S', 'S', 'S'],
   ['15', 'H', 'H', 'H', 'H', 'H', 'S', 'S', 'S', 'S', 'S'],
@@ -21,7 +21,7 @@ export const HARD_MATRIX = [
   ['8-', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H']
 ];
 
-export const SOFT_MATRIX = [
+export const SOFT_MATRIX: string[][] = [
   ['A9', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S'],
   ['A8', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S'],
   ['A7', 'H', 'H', 'H', 'S', 'S', 'D', 'D', 'D', 'D', 'S'],
@@ -32,7 +32,7 @@ export const SOFT_MATRIX = [
   ['A2', 'H', 'H', 'H', 'H', 'H', 'D', 'D', 'H', 'H', 'H']
 ];
 
-export const PAIR_MATRIX = [
+export const PAIR_MATRIX: string[][] = [
   ['AA', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP'],
   ['10 10', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S'],
   ['9 9', 'S', 'S', 'SP', 'SP', 'S', 'SP', 'SP', 'SP', 'SP', 'SP'],
@@ -44,4 +44,3 @@ export const PAIR_MATRIX = [
   ['3 3', 'H', 'H', 'H', 'H', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP'],
   ['2 2', 'H', 'H', 'H', 'H', 'SP', 'SP', 'SP', 'SP', 'SP', 'SP']
 ];
-

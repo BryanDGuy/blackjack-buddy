@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
   import {
     KEY_BINDINGS,
@@ -6,22 +6,22 @@
     HARD_MATRIX,
     SOFT_MATRIX,
     PAIR_MATRIX
-  } from './constants.js';
+  } from './constants';
 
   let skipTrivial = false;
-  let playerCards = [];
+  let playerCards: string[] = [];
   let dealerCard = '';
-  let dealerCards = [];
-  let queuedHands = [];
-  let completedHands = [];
-  let completedOutcomes = [];
+  let dealerCards: string[] = [];
+  let queuedHands: string[][] = [];
+  let completedHands: string[][] = [];
+  let completedOutcomes: string[] = [];
   let correct = 0;
   let total = 0;
   let pot = 1000;
   let bet = 10;
   let totalWinnings = 0;
   let roundWinnings = 0;
-  let deckState = { totalCards: 0, rankCounts: {} };
+  let deckState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
   let hint = '';
   let resultText = 'Result: -';
   let resultClass = 'result';
@@ -58,9 +58,9 @@
     }
   }
 
-  const rowDecisions = (row) => row.slice(1);
+  const rowDecisions = (row: string[]) => row.slice(1);
 
-  const decisionClass = (val) => {
+  const decisionClass = (val: string) => {
     switch (val) {
       case 'S':
         return 'cell-stand';
@@ -101,7 +101,7 @@
     locked = false;
   }
 
-  async function decide(decision) {
+  async function decide(decision: string) {
     if (locked || busy) {
       return;
     }
@@ -193,7 +193,7 @@
     }
   }
 
-  function handleKey(event) {
+  function handleKey(event: KeyboardEvent) {
     const tag = event.target?.tagName;
     if (tag && ['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) {
       return;
