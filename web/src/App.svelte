@@ -1,197 +1,72 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { KEY_BINDINGS } from './constants';
-  import { loadDeal, checkDecision, getHint } from './api';
+  import { handleLoadDeal, decide, startNextRound, handleKey, updateHint, type GameState } from './game';
   import Stats from './components/Stats.svelte';
   import DeckPanel from './components/DeckPanel.svelte';
   import StrategyTable from './components/StrategyTable.svelte';
 
-  let skipTrivial = false;
-  let playerCards: string[] = [];
-  let dealerCard = '';
-  let dealerCards: string[] = [];
-  let queuedHands: string[][] = [];
-  let completedHands: string[][] = [];
-  let correct = 0;
-  let total = 0;
-  let pot = 1000;
-  let bet = 10;
-  let totalWinnings = 0;
-  let deckState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
-  let hint = '';
-  let resultText = 'Result: -';
-  let resultClass = 'result';
-  let outcomeText = 'Outcome: -';
-  let outcomeClass = 'result outcome-box';
-  let nextVisible = false;
-  let busy = false;
-  let locked = false;
+  const state: GameState = {
+    skipTrivial: false,
+    playerCards: [],
+    dealerCard: '',
+    dealerCards: [],
+    queuedHands: [],
+    completedHands: [],
+    correct: 0,
+    total: 0,
+    pot: 1000,
+    bet: 10,
+    totalWinnings: 0,
+    roundWinnings: 0,
+    deckState: { totalCards: 0, rankCounts: {} },
+    hint: '',
+    resultText: 'Result: -',
+    resultClass: 'result',
+    outcomeText: 'Outcome: -',
+    outcomeClass: 'result outcome-box',
+    nextVisible: false,
+    busy: false,
+    locked: false
+  };
 
-  $: percent = total > 0 ? Math.round((correct / total) * 100) : 0;
-  $: derivedDealerCards = dealerCards.length ? dealerCards : dealerCard ? [dealerCard] : [];
+  $: percent = state.total > 0 ? Math.round((state.correct / state.total) * 100) : 0;
+  $: derivedDealerCards = state.dealerCards.length ? state.dealerCards : state.dealerCard ? [state.dealerCard] : [];
   
   let hintKey = '';
   $: {
-    const newKey = `${playerCards.join(',')}-${dealerCard}`;
-    if (newKey !== hintKey && playerCards.length && dealerCard && !locked) {
+    const newKey = `${state.playerCards.join(',')}-${state.dealerCard}`;
+    if (newKey !== hintKey && state.playerCards.length && state.dealerCard && !state.locked) {
       hintKey = newKey;
-      updateHint();
+      updateHint(state);
     }
-  }
-  
-  async function updateHint() {
-    if (!playerCards.length || !dealerCard || locked) return;
-    hint = await getHint({ playerCards, dealerCard });
-  }
-
-  async function handleLoadDeal() {
-    const data = await loadDeal(skipTrivial);
-    playerCards = data.playerCards || [];
-    dealerCard = data.dealerCard || '';
-    dealerCards = dealerCard ? [dealerCard] : [];
-    queuedHands = [];
-    completedHands = [];
-    if (total === 0) pot = data.pot || 1000;
-    bet = data.bet || 10;
-    if (data.deckState) deckState = data.deckState;
-    hint = data.hint || '';
-    resultText = 'Result: -';
-    resultClass = 'result';
-    outcomeText = 'Outcome: -';
-    outcomeClass = 'result outcome-box';
-    nextVisible = false;
-    locked = false;
-  }
-
-  async function decide(decision: string) {
-    if (locked || busy) {
-      return;
-    }
-
-    busy = true;
-
-    try {
-      const result = await checkDecision({
-        playerCards,
-        dealerCard,
-        decision,
-        queuedHands,
-        completedHands,
-        pot,
-        bet,
-        totalWinnings
-      });
-
-      total += 1;
-      if (result.correct) {
-        correct += 1;
-      }
-
-      if (result.pot !== undefined) pot = result.pot;
-      if (result.bet !== undefined) bet = result.bet;
-      if (result.totalWinnings !== undefined) totalWinnings = result.totalWinnings;
-      if (result.deckState) deckState = result.deckState;
-      if (result.hint !== undefined) hint = result.hint;
-
-      resultClass = `result ${result.correct ? 'correct' : 'incorrect'}`;
-      resultText = `${result.correct ? 'Correct' : 'Incorrect'}: ${result.correctDecision}`;
-      outcomeClass = 'result outcome-box';
-      if (result.outcome) {
-        let winningsText = '';
-        if (result.roundComplete && result.roundWinnings !== undefined) {
-          const sign = result.roundWinnings >= 0 ? '+' : '';
-          winningsText = ` (${sign}${result.roundWinnings})`;
-        }
-        outcomeText = `Outcome: ${result.outcome}${winningsText}`;
-      } else if (result.roundComplete && result.roundWinnings !== undefined) {
-        const sign = result.roundWinnings >= 0 ? '+' : '';
-        outcomeText = `Outcome: (${sign}${result.roundWinnings})`;
-      } else {
-        outcomeText = 'Outcome: -';
-      }
-
-      if (!result.correct || result.restart) {
-        nextVisible = true;
-      }
-
-      if (Array.isArray(result.playerCards) && result.playerCards.length) {
-        playerCards = result.playerCards;
-      }
-      if (Array.isArray(result.dealerCards) && result.dealerCards.length) {
-        dealerCards = result.dealerCards;
-      }
-
-      queuedHands = Array.isArray(result.queuedHands) ? result.queuedHands : [];
-      completedHands = Array.isArray(result.completedHands) ? result.completedHands : [];
-
-      if (result.roundComplete && queuedHands.length === 0 && result.correct && !result.restart) {
-        nextVisible = true;
-      }
-      if (!result.roundComplete && result.correct && !result.restart) {
-        nextVisible = false;
-      }
-    } finally {
-      locked = nextVisible;
-      busy = false;
-    }
-  }
-
-  async function startNextRound() {
-    if (!nextVisible || busy) {
-      return;
-    }
-    busy = true;
-    try {
-      await handleLoadDeal();
-    } finally {
-      busy = false;
-    }
-  }
-
-  function handleKey(event: KeyboardEvent) {
-    const target = event.target as HTMLElement;
-    const tag = target?.tagName;
-    if (tag && ['INPUT', 'SELECT', 'TEXTAREA'].includes(tag)) {
-      return;
-    }
-    const action = KEY_BINDINGS[event.key.toLowerCase()];
-    if (!action) return;
-    event.preventDefault();
-    if (action === 'NEXT') {
-      startNextRound();
-      return;
-    }
-    if (locked || busy) {
-      return;
-    }
-    decide(action);
   }
 
   onMount(() => {
-    handleLoadDeal();
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    handleLoadDeal(state);
+    const keyHandler = (e: KeyboardEvent) => handleKey(state, e);
+    window.addEventListener('keydown', keyHandler);
+    return () => window.removeEventListener('keydown', keyHandler);
   });
 </script>
 
 <div class="app">
   <div class="stats">
-    <Stats value={correct} label="CORRECT" />
-    <Stats value={total} label="TOTAL" />
+    <Stats value={state.correct} label="CORRECT" />
+    <Stats value={state.total} label="TOTAL" />
     <Stats value={percent} label="ACCURACY" />
   </div>
 
   <div class="stats">
-    <Stats value={pot} label="POT" />
-    <Stats value={bet} label="BET" />
+    <Stats value={state.pot} label="POT" />
+    <Stats value={state.bet} label="BET" />
     <div class="stat">
-      <div class="stat-value">{totalWinnings >= 0 ? '+' : ''}{totalWinnings}</div>
+      <div class="stat-value">{state.totalWinnings >= 0 ? '+' : ''}{state.totalWinnings}</div>
       <div class="stat-label">WINNINGS</div>
     </div>
   </div>
 
   <div class="options">
-    <label class="checkbox"><input type="checkbox" bind:checked={skipTrivial} on:change={handleLoadDeal}> Skip Trivial</label>
+    <label class="checkbox"><input type="checkbox" bind:checked={state.skipTrivial} on:change={() => handleLoadDeal(state)}> Skip Trivial</label>
   </div>
 
   <div class="section">
@@ -206,7 +81,7 @@
   <div class="section">
     <div class="label">Your Cards</div>
     <div class="cards">
-      {#each playerCards as card, index}
+      {#each state.playerCards as card, index}
         <div class="card" data-index={index}>{card}</div>
       {/each}
     </div>
@@ -214,24 +89,24 @@
 
   <div class="buttons-section">
     <div class="buttons">
-      <button on:click={() => decide('HIT')} disabled={locked || busy}>HIT (H)</button>
-      <button on:click={() => decide('STAND')} disabled={locked || busy}>STAND (S)</button>
-      <button on:click={() => decide('DOUBLE DOWN')} disabled={locked || busy}>DOUBLE DOWN (D)</button>
-      <button on:click={() => decide('SPLIT')} disabled={locked || busy}>SPLIT (P)</button>
+      <button on:click={() => decide(state, 'HIT')} disabled={state.locked || state.busy}>HIT (H)</button>
+      <button on:click={() => decide(state, 'STAND')} disabled={state.locked || state.busy}>STAND (S)</button>
+      <button on:click={() => decide(state, 'DOUBLE DOWN')} disabled={state.locked || state.busy}>DOUBLE DOWN (D)</button>
+      <button on:click={() => decide(state, 'SPLIT')} disabled={state.locked || state.busy}>SPLIT (P)</button>
     </div>
-    {#if hint}
+    {#if state.hint}
       <div class="hint-wrap">
         <div class="hint-button">?</div>
-        <div class="hint-panel hint-{hint.toLowerCase().replace(/\s+/g, '-')}">Hint: {hint}</div>
+        <div class="hint-panel hint-{state.hint.toLowerCase().replace(/\s+/g, '-')}">Hint: {state.hint}</div>
       </div>
     {/if}
   </div>
 
-  <div class={resultClass}>{resultText}</div>
-  <div class={outcomeClass}>{outcomeText}</div>
-  <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
+  <div class={state.resultClass}>{state.resultText}</div>
+  <div class={state.outcomeClass}>{state.outcomeText}</div>
+  <button class="next-btn" class:visible={state.nextVisible} on:click={() => startNextRound(state)}>Next (N)</button>
 
-  <DeckPanel {deckState} />
+  <DeckPanel deckState={state.deckState} />
   <StrategyTable />
 </div>
 

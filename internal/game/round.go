@@ -11,19 +11,19 @@ import (
 var ErrInvalidSplit = errors.New("invalid split")
 
 type RoundState struct {
-	Player      []card.Card
-	Dealer      card.Card
-	Queue       [][]card.Card
-	Completed   [][]card.Card
-	Outcomes    []string
-	HandBets    []int
+	Player    []card.Card
+	Dealer    card.Card
+	Queue     [][]card.Card
+	Completed [][]card.Card
+	Outcomes  []string
+	HandBets  []int
 }
 
 type RoundResolution struct {
-	State         RoundState
-	Outcome       string
-	RoundComplete bool
-	DealerCards   []card.Card
+	State          RoundState
+	Outcome        string
+	RoundComplete  bool
+	DealerCards    []card.Card
 	CurrentHandBet int
 }
 
@@ -116,13 +116,13 @@ func finalize(res RoundResolution, engine *Engine) RoundResolution {
 
 	bet := res.CurrentHandBet
 	if bet == 0 {
-		bet = 10
+		bet = DefaultBet
 	}
 	res.State = appendCompleted(res.State, res.Outcome, bet)
 
 	if len(res.State.Queue) > 0 {
 		res = advanceQueue(res, bet)
-	} else if engine != nil {
+	} else {
 		res = settleDealer(res, engine)
 	}
 
@@ -184,6 +184,9 @@ func settleDealer(res RoundResolution, engine *Engine) RoundResolution {
 
 	for i := len(res.State.Outcomes); i < len(outcomes); i++ {
 		res.State.Outcomes = append(res.State.Outcomes, outcomes[i])
+		if len(res.State.HandBets) <= i {
+			res.State.HandBets = append(res.State.HandBets, res.CurrentHandBet)
+		}
 	}
 
 	res.Outcome = FormatOutcomeSummary(res.State.Outcomes)
