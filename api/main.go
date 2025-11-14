@@ -9,10 +9,9 @@ import (
 
 func main() {
 	port := flag.Int("port", 8080, "Port for the HTTP server")
-	strategyName := flag.String("strategy", string(strategies.BasicStrategy), "Strategy variant")
 	flag.Parse()
 
-	strat := strategies.CreateStrategy(strategies.StrategyType(*strategyName))
+	strat := strategies.NewBasic()
 	srv := newServer(strat)
 
 	if err := srv.Start(*port); err != nil {

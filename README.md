@@ -26,10 +26,10 @@ make build
 ## Usage
 
 ```bash
-./blackjack-buddy [-port=8080] [-strategy=basic]
+./blackjack-buddy [-port=8080]
 ```
 
-The binary hosts the HTTP API and embedded trainer UI. Strategy flag accepts any value from `internal/strategy/strategies` (e.g., `basic`, `coward`).
+The binary hosts the HTTP API and embedded trainer UI.
 
 ## Development
 
