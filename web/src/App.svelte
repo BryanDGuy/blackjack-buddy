@@ -75,8 +75,8 @@
     }
   };
 
-  async function loadScenario() {
-    const res = await fetch('/api/scenario', {
+  async function loadDeal() {
+    const res = await fetch('/api/deal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ skipTrivial })
@@ -187,7 +187,7 @@
     }
     busy = true;
     try {
-      await loadScenario();
+      await loadDeal();
     } finally {
       busy = false;
     }
@@ -212,7 +212,7 @@
   }
 
   onMount(() => {
-    loadScenario();
+    loadDeal();
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   });
@@ -232,7 +232,7 @@
   </div>
 
   <div class="options">
-    <label class="checkbox"><input type="checkbox" bind:checked={skipTrivial} on:change={loadScenario}> Skip Trivial</label>
+    <label class="checkbox"><input type="checkbox" bind:checked={skipTrivial} on:change={loadDeal}> Skip Trivial</label>
   </div>
 
   <div class="section">

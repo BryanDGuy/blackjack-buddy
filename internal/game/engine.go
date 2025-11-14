@@ -49,12 +49,12 @@ func (e *Engine) shuffle() {
 	})
 }
 
-type Scenario struct {
+type Deal struct {
 	Player []card.Card
 	Dealer card.Card
 }
 
-func (e *Engine) GenerateScenario(skipTrivial bool) Scenario {
+func (e *Engine) GenerateDeal(skipTrivial bool) Deal {
 	for {
 		player := []card.Card{e.DrawCard(), e.DrawCard()}
 		dealer := e.DrawCard()
@@ -63,7 +63,7 @@ func (e *Engine) GenerateScenario(skipTrivial bool) Scenario {
 			continue
 		}
 
-		return Scenario{
+		return Deal{
 			Player: player,
 			Dealer: dealer,
 		}

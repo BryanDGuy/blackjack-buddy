@@ -11,7 +11,7 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-type scenario struct {
+type deal struct {
 	PlayerCards []string       `json:"playerCards"`
 	DealerCard  string         `json:"dealerCard"`
 	Pot         int            `json:"pot"`
@@ -20,29 +20,29 @@ type scenario struct {
 	Hint        string         `json:"hint"`
 }
 
-type scenarioRequest struct {
+type dealRequest struct {
 	SkipTrivial bool `json:"skipTrivial"`
 }
 
-func NewScenario(engine *game.Engine, advisor *strategy.Advisor) http.HandlerFunc {
+func NewDeal(engine *game.Engine, advisor *strategy.Advisor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req scenarioRequest
+		var req dealRequest
 		if r.Method == "POST" {
 			json.NewDecoder(r.Body).Decode(&req)
 		}
 
-		sc := engine.GenerateScenario(req.SkipTrivial)
+		d := engine.GenerateDeal(req.SkipTrivial)
 		hint := ""
 		if advisor != nil {
-			playerHand := hand.NewHand(sc.Player)
-			dealerHand := hand.NewHand([]card.Card{sc.Dealer})
+			playerHand := hand.NewHand(d.Player)
+			dealerHand := hand.NewHand([]card.Card{d.Dealer})
 			if decision, err := advisor.MakeDecision(playerHand, dealerHand); err == nil {
 				hint = decision.ToString()
 			}
 		}
-		resp := scenario{
-			PlayerCards: helpers.CardsToStrings(sc.Player),
-			DealerCard:  sc.Dealer.ToString(),
+		resp := deal{
+			PlayerCards: helpers.CardsToStrings(d.Player),
+			DealerCard:  d.Dealer.ToString(),
 			Pot:         game.StartingPot,
 			Bet:         game.DefaultBet,
 			DeckState:   engine.GetDeckState(),

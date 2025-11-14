@@ -25,23 +25,23 @@ type checkRequest struct {
 }
 
 type checkResponse struct {
-	Correct           bool                  `json:"correct"`
-	CorrectDecision   string                `json:"correctDecision"`
-	UserDecision      string                `json:"userDecision"`
-	PlayerCards       []string              `json:"playerCards"`
-	DealerCards       []string              `json:"dealerCards"`
-	QueuedHands       [][]string            `json:"queuedHands"`
-	CompletedHands    [][]string            `json:"completedHands"`
-	CompletedOutcomes []string              `json:"completedOutcomes"`
-	Outcome           string                `json:"outcome"`
-	RoundComplete     bool                  `json:"roundComplete"`
-	Restart           bool                  `json:"restart"`
-	Pot               int                   `json:"pot"`
-	Bet               int                   `json:"bet"`
-	RoundWinnings     int                   `json:"roundWinnings"`
-	TotalWinnings     int                   `json:"totalWinnings"`
-	DeckState         game.DeckState         `json:"deckState"`
-	Hint              string                  `json:"hint"`
+	Correct           bool           `json:"correct"`
+	CorrectDecision   string         `json:"correctDecision"`
+	UserDecision      string         `json:"userDecision"`
+	PlayerCards       []string       `json:"playerCards"`
+	DealerCards       []string       `json:"dealerCards"`
+	QueuedHands       [][]string     `json:"queuedHands"`
+	CompletedHands    [][]string     `json:"completedHands"`
+	CompletedOutcomes []string       `json:"completedOutcomes"`
+	Outcome           string         `json:"outcome"`
+	RoundComplete     bool           `json:"roundComplete"`
+	Restart           bool           `json:"restart"`
+	Pot               int            `json:"pot"`
+	Bet               int            `json:"bet"`
+	RoundWinnings     int            `json:"roundWinnings"`
+	TotalWinnings     int            `json:"totalWinnings"`
+	DeckState         game.DeckState `json:"deckState"`
+	Hint              string         `json:"hint"`
 }
 
 func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
