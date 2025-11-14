@@ -134,9 +134,8 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 			response.TotalWinnings = totalWinnings + roundWinnings
 			response.Pot = pot + roundWinnings
 			response.DeckState = engine.GetDeckState()
-			if hintDecision, err := advisor.MakeDecision(playerHand, dealerHand); err == nil {
-				response.Hint = hintDecision.ToString()
-			}
+			decision, _ := advisor.MakeDecision(playerHand, dealerHand)
+			response.Hint = decision.ToString()
 			writeJSON(w, response)
 			return
 		}
@@ -177,9 +176,8 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 
 		currentPlayerHand := hand.NewHand(resolution.State.Player)
 		currentDealerHand := hand.NewHand([]card.Card{resolution.State.Dealer})
-		if hintDecision, err := advisor.MakeDecision(currentPlayerHand, currentDealerHand); err == nil {
-			response.Hint = hintDecision.ToString()
-		}
+		decision, _ := advisor.MakeDecision(currentPlayerHand, currentDealerHand)
+		response.Hint = decision.ToString()
 
 		writeJSON(w, response)
 	}
