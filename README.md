@@ -28,8 +28,13 @@ The binary hosts the HTTP API and embedded trainer. Strategy flag accepts any va
 
 ## Development
 
-```bash
-make ui-build
-make api-build
-make dev
-```
+- `make ui-build` — rebuild the Svelte trainer only
+- `make api-build` — compile the Go server only
+- `make run` — build everything then start the server
+
+## Structure
+
+- `api/` — HTTP server, handlers, helpers, embedded assets
+- `internal/game` — scenario generation, round resolution
+- `internal/strategy` — advisor + strategy matrices
+- `web/` — Svelte trainer UI

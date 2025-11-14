@@ -411,10 +411,8 @@
     position: fixed;
     top: 16px;
     right: 16px;
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    flex-direction: row-reverse;
+    width: 36px;
+    height: 36px;
     z-index: 10;
   }
 
@@ -431,6 +429,8 @@
     cursor: pointer;
     font-weight: bold;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    position: relative;
+    z-index: 2;
   }
 
   .info-panel {
@@ -444,6 +444,16 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
+    position: absolute;
+    top: 0;
+    right: 44px;
+    visibility: hidden;
+  }
+
+  .info-wrap:hover .info-panel {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
   }
 
   .info-panel table {
@@ -464,11 +474,6 @@
     font-weight: bold;
     text-align: left;
     padding: 6px 0 4px;
-  }
-
-  .info-wrap:hover .info-panel {
-    opacity: 1;
-    pointer-events: auto;
   }
 
   .cell-stand {

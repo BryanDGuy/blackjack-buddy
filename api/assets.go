@@ -13,7 +13,7 @@ var (
 func loadUI() fs.FS {
 	sub, err := fs.Sub(ui, "assets")
 	if err != nil {
-		panic("ui assets missing")
+		panic("ui assets missing: run make ui-build before starting the server")
 	}
 	return sub
 }
