@@ -6,7 +6,6 @@ Blackjack decision assistant implementing basic strategy. Minimal CLI written in
 
 - Matrix-based basic strategy lookup
 - Interactive decision advisor
-- Strategy simulation with multiple strategies
 - Web-based training mode
 - Handles soft hands, pairs, and hard hands
 
@@ -37,13 +36,7 @@ make build
 # http://localhost:8080
 ```
 
-### Simulation
-```bash
-./blackjack-buddy -sim -strategy=basic -pot=1000 -buyin=10 -rounds=100
-# 990.00 | -1.0%
-```
-
-**Flags:** `-sim`, `-strategy=<basic|coward>`, `-pot=<amount>`, `-buyin=<amount>`, `-rounds=<count>`, `-verbose`
+**Flags:** `-train`, `-strategy=<basic|coward>`
 
 ## Development
 
@@ -54,4 +47,4 @@ make clean   # Show targets: make help
 
 ## Structure
 
-`internal/card` | `internal/hand` | `internal/strategy` | `internal/simulator` | `internal/trainer` | `cmd/blackjack-buddy`
+`internal/card` | `internal/hand` | `internal/strategy` | `internal/trainer` | `cmd/blackjack-buddy`

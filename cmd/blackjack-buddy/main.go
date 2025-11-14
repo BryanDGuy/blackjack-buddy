@@ -9,20 +9,14 @@ import (
 
 	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/hand"
-	"github.com/bryan/blackjack-buddy/internal/simulator"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 	"github.com/bryan/blackjack-buddy/internal/strategy/strategies"
 	"github.com/bryan/blackjack-buddy/internal/trainer"
 )
 
 func main() {
-	simMode := flag.Bool("sim", false, "")
 	trainMode := flag.Bool("train", false, "")
 	strategyName := flag.String("strategy", "basic", "")
-	startingPot := flag.Float64("pot", 1000, "")
-	buyIn := flag.Float64("buyin", 10, "")
-	rounds := flag.Int("rounds", 100, "")
-	verbose := flag.Bool("verbose", false, "")
 	flag.Parse()
 
 	stratType := strategies.StrategyType(*strategyName)
@@ -30,8 +24,6 @@ func main() {
 
 	if *trainMode {
 		runTrainer(strat)
-	} else if *simMode {
-		runSimulation(strat, *startingPot, *buyIn, *rounds, *verbose)
 	} else {
 		runInteractive()
 	}
@@ -42,18 +34,6 @@ func runTrainer(strat strategy.Strategy) {
 	if err := t.Start(8080); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
-	}
-}
-
-func runSimulation(strat strategy.Strategy, startingPot, buyIn float64, rounds int, verbose bool) {
-	sim := simulator.NewSimulator(strat)
-	result := sim.Run(startingPot, buyIn, rounds, verbose)
-
-	if result.RanOutOfMoney {
-		fmt.Printf("%.2f | %.1f%% | Ran out after %d rounds\n",
-			result.FinalPot, result.GainLossPercent, result.RoundsPlayed)
-	} else {
-		fmt.Printf("%.2f | %.1f%%\n", result.FinalPot, result.GainLossPercent)
 	}
 }
 

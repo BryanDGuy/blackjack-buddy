@@ -44,7 +44,7 @@
 - `internal/card`: Card representation (rank-only)
 - `internal/hand`: Hand evaluation and scoring
 - `internal/strategy`: Decision logic and strategy interface
-- `internal/simulator`: Game simulation engine
+- `internal/trainer`: Training mode HTTP server and embedded UI
 - `cmd/blackjack-buddy`: CLI interface (minimal, essential only)
 
 ## Development Rules
@@ -54,6 +54,7 @@
 2. No decorative elements or "helpful" messages
 3. Maintain functional, clean code without fluff
 4. Test that build works: `make build`
+5. For trainer UI, keep layout stable (reserve space with fixed heights/placeholders) and avoid auto-advancing rounds
 
 ### When Modifying Code
 1. Remove comments rather than add them
@@ -70,6 +71,12 @@
 - When adding tests, keep output minimal
 - Use table-driven tests for clarity
 - No verbose test names - be concise
+
+## Trainer UI Rules
+- Always show keyboard shortcuts on action buttons and keep bindings (`H`, `S`, `D`, `P`, `N`) working
+- Next round must require explicit click or `N`; do not auto-load new scenarios
+- Maintain consistent element placement with placeholder text and fixed heights
+- Show completed split-hand outcomes; omit queued-hand lists unless carrying value beyond layout
 
 ## Anti-Patterns to Avoid
 ❌ Emojis anywhere in code or output
