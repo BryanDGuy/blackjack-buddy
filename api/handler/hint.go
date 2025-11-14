@@ -27,7 +27,7 @@ func NewHint(advisor *strategy.Advisor) http.HandlerFunc {
 			return
 		}
 
-		dealerCard, err := helpers.ParseCard(req.DealerCard)
+		dealerCard, err := helpers.ParseCardFromString(req.DealerCard)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

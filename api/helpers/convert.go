@@ -6,7 +6,7 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/card"
 )
 
-func ParseCard(value string) (card.Card, error) {
+func ParseCardFromString(value string) (card.Card, error) {
 	var rank card.Rank
 
 	switch value {
@@ -46,7 +46,7 @@ func ParseCard(value string) (card.Card, error) {
 func CardsFromStrings(values []string) ([]card.Card, error) {
 	cards := make([]card.Card, len(values))
 	for i, value := range values {
-		cardValue, err := ParseCard(value)
+		cardValue, err := ParseCardFromString(value)
 		if err != nil {
 			return nil, err
 		}
