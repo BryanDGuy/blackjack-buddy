@@ -1,13 +1,12 @@
 # Blackjack Buddy
 
-Blackjack decision assistant implementing basic strategy. Minimal CLI written in Go.
+Blackjack decision assistant implementing basic strategy. Minimal Go HTTP server with an embedded Svelte trainer.
 
 ## Features
 
-- Matrix-based basic strategy lookup
-- Interactive decision advisor
-- Web-based training mode
-- Handles soft hands, pairs, and hard hands
+- Matrix-based strategy lookup with advisor
+- Embedded web trainer with round simulation
+- Supports hard, soft, doubles, and splits
 
 ## Quick Start
 
@@ -23,7 +22,14 @@ make build
 
 ```bash
 ./blackjack-buddy [-port=8080] [-strategy=basic]
-# http://localhost:8080
 ```
 
-The bundled web UI serves from the same address. Strategy flag accepts any value supported by `internal/strategy/strategies` (e.g. `basic`, `coward`).
+The binary hosts the HTTP API and embedded trainer. Strategy flag accepts any value from `internal/strategy/strategies` (e.g. `basic`, `coward`).
+
+## Development
+
+```bash
+make ui-build
+make api-build
+make dev
+```

@@ -1,0 +1,106 @@
+package game
+
+import (
+	"math/rand"
+
+	"github.com/bryan/blackjack-buddy/internal/card"
+	"github.com/bryan/blackjack-buddy/internal/hand"
+)
+
+type Engine struct {
+	rng *rand.Rand
+}
+
+func NewEngine(rng *rand.Rand) *Engine {
+	return &Engine{rng: rng}
+}
+
+type Scenario struct {
+	Player []card.Card
+	Dealer card.Card
+}
+
+func (e *Engine) GenerateScenario(skipTrivial bool) Scenario {
+	for {
+		player := []card.Card{e.DrawCard(), e.DrawCard()}
+		dealer := e.DrawCard()
+
+		if skipTrivial && IsTrivialHand(player) {
+			continue
+		}
+
+		return Scenario{
+			Player: player,
+			Dealer: dealer,
+		}
+	}
+}
+
+func (e *Engine) DrawCard() card.Card {
+	ranks := []card.Rank{
+		card.Ace, card.Two, card.Three, card.Four, card.Five,
+		card.Six, card.Seven, card.Eight, card.Nine, card.Ten,
+		card.Jack, card.Queen, card.King,
+	}
+	return card.NewCard(ranks[e.rng.Intn(len(ranks))])
+}
+
+func IsTrivialHand(cards []card.Card) bool {
+	h := hand.NewHand(cards)
+	if h.IsBlackjack() {
+		return true
+	}
+
+	switch h.GetType() {
+	case hand.Hard20, hand.Hard19, hand.Hard18, hand.Hard17:
+		return true
+	case hand.Hard8, hand.Hard7, hand.Hard6, hand.Hard5, hand.Hard4:
+		return true
+	default:
+		return false
+	}
+}
+
+func (e *Engine) FinishDealer(cards []card.Card) []card.Card {
+	current := append([]card.Card{}, cards...)
+	dealerHand := hand.NewHand(current)
+	if len(dealerHand.Cards) == 1 {
+		dealerHand = hand.NewHand(append(dealerHand.Cards, e.DrawCard()))
+	}
+
+	for dealerHand.Value() < 17 {
+		dealerHand = hand.NewHand(append(dealerHand.Cards, e.DrawCard()))
+	}
+
+	return dealerHand.Cards
+}
+
+func (e *Engine) EvaluateAllHands(hands [][]card.Card, dealer card.Card) ([]card.Card, []string) {
+	dealerCards := e.FinishDealer([]card.Card{dealer})
+	finalDealer := hand.NewHand(dealerCards)
+	results := make([]string, len(hands))
+
+	for i, cards := range hands {
+		playerHand := hand.NewHand(cards)
+		switch {
+		case playerHand.IsBust():
+			results[i] = "Bust"
+		case len(playerHand.Cards) == 2 && playerHand.Value() == 21:
+			if finalDealer.IsBlackjack() {
+				results[i] = "Push"
+			} else {
+				results[i] = "Blackjack"
+			}
+		case finalDealer.IsBust():
+			results[i] = "Win"
+		case playerHand.Value() > finalDealer.Value():
+			results[i] = "Win"
+		case playerHand.Value() < finalDealer.Value():
+			results[i] = "Lose"
+		default:
+			results[i] = "Push"
+		}
+	}
+
+	return dealerCards, results
+}

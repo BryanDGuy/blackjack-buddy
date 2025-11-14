@@ -35,6 +35,7 @@ Thumbs.db
 
 # Build output
 /blackjack-buddy
+/api/assets/
 /web/node_modules/
 /web/dist/
 

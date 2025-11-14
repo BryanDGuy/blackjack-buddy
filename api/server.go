@@ -6,28 +6,27 @@ import (
 	"io/fs"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
+	"github.com/bryan/blackjack-buddy/internal/game"
 	"github.com/bryan/blackjack-buddy/internal/hand"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
-	frontend "github.com/bryan/blackjack-buddy/web"
 )
 
 type server struct {
 	advisor *strategy.Advisor
-	rng     *rand.Rand
+	engine  *game.Engine
 	ui      fs.FS
 }
 
 func newServer(strat strategy.Strategy) *server {
-	dist := frontend.Dist()
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	return &server{
 		advisor: strategy.NewAdvisor(strat),
-		rng:     rand.New(rand.NewSource(time.Now().UnixNano())),
-		ui:      dist,
+		engine:  game.NewEngine(rng),
+		ui:      loadUI(),
 	}
 }
 
@@ -62,47 +61,6 @@ type checkResponse struct {
 	Restart           bool       `json:"restart"`
 }
 
-func (s *server) generateScenario(skipTrivial bool) scenario {
-	for {
-		playerCards := []card.Card{s.randomCard(), s.randomCard()}
-		dealerCard := s.randomCard()
-
-		if skipTrivial && s.isTrivialHand(playerCards) {
-			continue
-		}
-
-		return scenario{
-			PlayerCards: []string{playerCards[0].ToString(), playerCards[1].ToString()},
-			DealerCard:  dealerCard.ToString(),
-		}
-	}
-}
-
-func (s *server) isTrivialHand(playerCards []card.Card) bool {
-	h := hand.NewHand(playerCards)
-	if h.IsBlackjack() {
-		return true
-	}
-	handType := h.GetType()
-	switch handType {
-	case hand.Hard20, hand.Hard19, hand.Hard18, hand.Hard17:
-		return true
-	case hand.Hard8, hand.Hard7, hand.Hard6, hand.Hard5, hand.Hard4:
-		return true
-	default:
-		return false
-	}
-}
-
-func (s *server) randomCard() card.Card {
-	ranks := []card.Rank{
-		card.Ace, card.Two, card.Three, card.Four, card.Five,
-		card.Six, card.Seven, card.Eight, card.Nine, card.Ten,
-		card.Jack, card.Queen, card.King,
-	}
-	return card.NewCard(ranks[s.rng.Intn(len(ranks))])
-}
-
 func (s *server) parseDecision(dec string) (strategy.Decision, error) {
 	switch dec {
 	case "HIT":
@@ -118,157 +76,20 @@ func (s *server) parseDecision(dec string) (strategy.Decision, error) {
 	}
 }
 
-func (s *server) parseCard(sv string) (card.Card, error) {
-	var rank card.Rank
-	switch sv {
-	case "A":
-		rank = card.Ace
-	case "2":
-		rank = card.Two
-	case "3":
-		rank = card.Three
-	case "4":
-		rank = card.Four
-	case "5":
-		rank = card.Five
-	case "6":
-		rank = card.Six
-	case "7":
-		rank = card.Seven
-	case "8":
-		rank = card.Eight
-	case "9":
-		rank = card.Nine
-	case "10":
-		rank = card.Ten
-	case "J":
-		rank = card.Jack
-	case "Q":
-		rank = card.Queen
-	case "K":
-		rank = card.King
-	default:
-		return card.Card{}, fmt.Errorf("invalid card: %s", sv)
-	}
-	return card.NewCard(rank), nil
-}
-
-func cardsToStrings(cards []card.Card) []string {
-	out := make([]string, len(cards))
-	for i, c := range cards {
-		out[i] = c.ToString()
-	}
-	return out
-}
-
-func (s *server) cardsFromStrings(values []string) ([]card.Card, error) {
-	cards := make([]card.Card, len(values))
-	for i, sv := range values {
-		c, err := s.parseCard(sv)
-		if err != nil {
-			return nil, err
-		}
-		cards[i] = c
-	}
-	return cards, nil
-}
-
-func (s *server) handsFromStrings(data [][]string) ([][]card.Card, error) {
-	hands := make([][]card.Card, len(data))
-	for i, seq := range data {
-		cards, err := s.cardsFromStrings(seq)
-		if err != nil {
-			return nil, err
-		}
-		hands[i] = cards
-	}
-	return hands, nil
-}
-
-func handsToStrings(hands [][]card.Card) [][]string {
-	out := make([][]string, len(hands))
-	for i, h := range hands {
-		out[i] = cardsToStrings(h)
-	}
-	return out
-}
-
-func initialOutcomes(hands [][]card.Card) []string {
-	outcomes := make([]string, len(hands))
-	for i, h := range hands {
-		if hand.NewHand(h).IsBust() {
-			outcomes[i] = "Bust"
-		}
-	}
-	return outcomes
-}
-
-func (s *server) evaluateAllHands(hands [][]card.Card, dealerHand *hand.Hand) ([]card.Card, []string) {
-	dealerCards := s.finishDealer(dealerHand.Cards)
-	finalDealer := hand.NewHand(dealerCards)
-	out := make([]string, len(hands))
-
-	for i, cards := range hands {
-		ph := hand.NewHand(cards)
-		switch {
-		case ph.IsBust():
-			out[i] = "Bust"
-		case len(ph.Cards) == 2 && ph.Value() == 21:
-			if finalDealer.IsBlackjack() {
-				out[i] = "Push"
-			} else {
-				out[i] = "Blackjack"
-			}
-		case finalDealer.IsBust():
-			out[i] = "Win"
-		case ph.Value() > finalDealer.Value():
-			out[i] = "Win"
-		case ph.Value() < finalDealer.Value():
-			out[i] = "Lose"
-		default:
-			out[i] = "Push"
-		}
-	}
-
-	return dealerCards, out
-}
-
-func formatOutcomeSummary(outcomes []string) string {
-	if len(outcomes) == 0 {
-		return ""
-	}
-	parts := make([]string, 0, len(outcomes))
-	for i, outcome := range outcomes {
-		label := outcome
-		if label == "" {
-			label = "Pending"
-		}
-		parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
-	}
-	return strings.Join(parts, " | ")
-}
-
-func (s *server) finishDealer(cards []card.Card) []card.Card {
-	dealerHand := hand.NewHand(cards)
-	if len(dealerHand.Cards) == 1 {
-		dealerHand = hand.NewHand(append(dealerHand.Cards, s.randomCard()))
-	}
-
-	for dealerHand.Value() < 17 {
-		dealerHand = hand.NewHand(append(dealerHand.Cards, s.randomCard()))
-	}
-
-	return dealerHand.Cards
-}
-
 func (s *server) handleScenario(w http.ResponseWriter, r *http.Request) {
 	var req scenarioRequest
 	if r.Method == "POST" {
 		json.NewDecoder(r.Body).Decode(&req)
 	}
-	scenario := s.generateScenario(req.SkipTrivial)
+
+	sc := s.engine.GenerateScenario(req.SkipTrivial)
+	resp := scenario{
+		PlayerCards: game.CardsToStrings(sc.Player),
+		DealerCard:  sc.Dealer.ToString(),
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(scenario)
+	json.NewEncoder(w).Encode(resp)
 }
 
 func (s *server) handleCheck(w http.ResponseWriter, r *http.Request) {
@@ -278,25 +99,25 @@ func (s *server) handleCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	playerCards, err := s.cardsFromStrings(req.PlayerCards)
+	playerCards, err := game.CardsFromStrings(req.PlayerCards)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	dealerCard, err := s.parseCard(req.DealerCard)
+	dealerCard, err := game.ParseCard(req.DealerCard)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	queuedHands, err := s.handsFromStrings(req.QueuedHands)
+	queuedHands, err := game.HandsFromStrings(req.QueuedHands)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	completedHands, err := s.handsFromStrings(req.CompletedHands)
+	completedHands, err := game.HandsFromStrings(req.CompletedHands)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -321,18 +142,18 @@ func (s *server) handleCheck(w http.ResponseWriter, r *http.Request) {
 		Correct:         userDecision == correctDecision,
 		CorrectDecision: correctDecision.ToString(),
 		UserDecision:    userDecision.ToString(),
-		PlayerCards:     cardsToStrings(playerCards),
-		QueuedHands:     handsToStrings(queuedHands),
-		CompletedHands:  handsToStrings(completedHands),
+		PlayerCards:     game.CardsToStrings(playerCards),
+		QueuedHands:     game.HandsToStrings(queuedHands),
+		CompletedHands:  game.HandsToStrings(completedHands),
 	}
 
-	completedOutcomes := initialOutcomes(completedHands)
+	completedOutcomes := game.InitialOutcomes(completedHands)
 	response.CompletedOutcomes = append([]string{}, completedOutcomes...)
 
 	if !response.Correct {
 		response.RoundComplete = true
 		response.Restart = true
-		response.DealerCards = cardsToStrings(dealerHand.Cards)
+		response.DealerCards = game.CardsToStrings(dealerHand.Cards)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 		return
@@ -340,9 +161,9 @@ func (s *server) handleCheck(w http.ResponseWriter, r *http.Request) {
 
 	switch userDecision {
 	case strategy.Hit:
-		playerCards = append(playerCards, s.randomCard())
+		playerCards = append(playerCards, s.engine.DrawCard())
 		playerHand = hand.NewHand(playerCards)
-		response.PlayerCards = cardsToStrings(playerCards)
+		response.PlayerCards = game.CardsToStrings(playerCards)
 		if playerHand.IsBust() || playerHand.Value() == 21 {
 			response.RoundComplete = true
 		}
@@ -350,9 +171,9 @@ func (s *server) handleCheck(w http.ResponseWriter, r *http.Request) {
 			response.Outcome = "Bust"
 		}
 	case strategy.DoubleDown:
-		playerCards = append(playerCards, s.randomCard())
+		playerCards = append(playerCards, s.engine.DrawCard())
 		playerHand = hand.NewHand(playerCards)
-		response.PlayerCards = cardsToStrings(playerCards)
+		response.PlayerCards = game.CardsToStrings(playerCards)
 		response.RoundComplete = true
 		if playerHand.IsBust() {
 			response.Outcome = "Bust"
@@ -366,53 +187,51 @@ func (s *server) handleCheck(w http.ResponseWriter, r *http.Request) {
 		}
 		first := playerCards[0]
 		second := playerCards[1]
-		firstHand := []card.Card{first, s.randomCard()}
-		secondHand := []card.Card{second, s.randomCard()}
+		firstHand := []card.Card{first, s.engine.DrawCard()}
+		secondHand := []card.Card{second, s.engine.DrawCard()}
 		playerCards = firstHand
 		queuedHands = append([][]card.Card{secondHand}, queuedHands...)
-		response.PlayerCards = cardsToStrings(playerCards)
-		response.QueuedHands = handsToStrings(queuedHands)
+		response.PlayerCards = game.CardsToStrings(playerCards)
+		response.QueuedHands = game.HandsToStrings(queuedHands)
 	}
 
 	if response.RoundComplete {
 		finishedHand := append([]card.Card{}, playerCards...)
 		completedHands = append(completedHands, finishedHand)
 		handOutcome := response.Outcome
-		if handOutcome == "" {
-			if hand.NewHand(finishedHand).IsBust() {
-				handOutcome = "Bust"
-			}
+		if handOutcome == "" && hand.NewHand(finishedHand).IsBust() {
+			handOutcome = "Bust"
 		}
 		completedOutcomes = append(completedOutcomes, handOutcome)
-		response.CompletedHands = handsToStrings(completedHands)
+		response.CompletedHands = game.HandsToStrings(completedHands)
 		response.CompletedOutcomes = append([]string{}, completedOutcomes...)
 
 		if len(queuedHands) > 0 {
 			next := append([]card.Card{}, queuedHands[0]...)
 			queuedHands = queuedHands[1:]
 			playerCards = next
-			response.PlayerCards = cardsToStrings(playerCards)
-			response.QueuedHands = handsToStrings(queuedHands)
+			response.PlayerCards = game.CardsToStrings(playerCards)
+			response.QueuedHands = game.HandsToStrings(queuedHands)
 			response.RoundComplete = false
 			response.Outcome = ""
-			response.DealerCards = cardsToStrings(dealerHand.Cards)
+			response.DealerCards = game.CardsToStrings([]card.Card{dealerCard})
 		} else {
-			dealerCards, outcomes := s.evaluateAllHands(completedHands, dealerHand)
-			response.DealerCards = cardsToStrings(dealerCards)
+			dealerCards, outcomes := s.engine.EvaluateAllHands(completedHands, dealerCard)
+			response.DealerCards = game.CardsToStrings(dealerCards)
 			for i := range completedOutcomes {
 				if completedOutcomes[i] == "" && i < len(outcomes) {
 					completedOutcomes[i] = outcomes[i]
 				}
 			}
 			response.CompletedOutcomes = append([]string{}, completedOutcomes...)
-			response.Outcome = formatOutcomeSummary(completedOutcomes)
+			response.Outcome = game.FormatOutcomeSummary(completedOutcomes)
 		}
 	} else {
-		response.QueuedHands = handsToStrings(queuedHands)
-		response.CompletedHands = handsToStrings(completedHands)
+		response.QueuedHands = game.HandsToStrings(queuedHands)
+		response.CompletedHands = game.HandsToStrings(completedHands)
 		response.CompletedOutcomes = append([]string{}, completedOutcomes...)
 		if len(response.DealerCards) == 0 {
-			response.DealerCards = cardsToStrings(dealerHand.Cards)
+			response.DealerCards = game.CardsToStrings([]card.Card{dealerCard})
 		}
 	}
 
@@ -421,14 +240,9 @@ func (s *server) handleCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) handleUI(w http.ResponseWriter, r *http.Request) {
-	if s.ui == nil {
-		http.Error(w, "trainer UI not built. run `npm install` and `npm run build` inside web/", http.StatusServiceUnavailable)
-		return
-	}
-
 	data, err := fs.ReadFile(s.ui, "index.html")
 	if err != nil {
-		http.Error(w, "trainer UI not built. run `npm install` and `npm run build` inside web/", http.StatusServiceUnavailable)
+		http.Error(w, "trainer UI not built", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -441,15 +255,9 @@ func (s *server) Start(port int) error {
 	mux.HandleFunc("/api/scenario", s.handleScenario)
 	mux.HandleFunc("/api/check", s.handleCheck)
 
-	if s.ui != nil {
-		fileServer := http.FileServer(http.FS(s.ui))
-		mux.Handle("/assets/", fileServer)
-		mux.HandleFunc("/", s.handleUI)
-	} else {
-		mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-			http.Error(w, "trainer UI not built. run `npm install` and `npm run build` inside web/", http.StatusServiceUnavailable)
-		})
-	}
+	fileServer := http.FileServer(http.FS(s.ui))
+	mux.Handle("/assets/", fileServer)
+	mux.HandleFunc("/", s.handleUI)
 
 	addr := fmt.Sprintf(":%d", port)
 	fmt.Printf("http://localhost%s\n", addr)

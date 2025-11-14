@@ -4,8 +4,9 @@ GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 BINARY_NAME=blackjack-buddy
 WEB_DIR=web
+API_DIR=api
 
-.PHONY: all build clean run dev ui-build ui-install help
+.PHONY: all build clean run dev ui-build ui-install api-build help
 
 all: build
 
@@ -15,24 +16,28 @@ ui-install:
 ui-build: ui-install
 	npm run build --prefix $(WEB_DIR)
 
-build: ui-build
+api-build:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./api
+
+build: ui-build
+	$(MAKE) api-build
 
 run: build
 	./$(BINARY_NAME)
 
-dev: ui-install
-	npm run build --prefix $(WEB_DIR)
+dev: ui-build
 	$(GOCMD) run ./api
 
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 	rm -rf $(WEB_DIR)/dist
+	rm -rf $(API_DIR)/assets
 
 help:
 	@echo "Available targets:"
 	@echo "  build  - Build Go server and web bundle"
+	@echo "  api-build - Build Go server only"
 	@echo "  run    - Build then start the server"
 	@echo "  dev    - Rebuild web bundle then run via go run"
 	@echo "  clean  - Remove build artifacts"
