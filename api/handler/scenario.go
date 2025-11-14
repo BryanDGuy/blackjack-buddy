@@ -9,8 +9,11 @@ import (
 )
 
 type scenario struct {
-	PlayerCards []string `json:"playerCards"`
-	DealerCard  string   `json:"dealerCard"`
+	PlayerCards []string            `json:"playerCards"`
+	DealerCard  string              `json:"dealerCard"`
+	Pot         int                 `json:"pot"`
+	Bet         int                 `json:"bet"`
+	DeckState   game.DeckState      `json:"deckState"`
 }
 
 type scenarioRequest struct {
@@ -28,6 +31,9 @@ func NewScenario(engine *game.Engine) http.HandlerFunc {
 		resp := scenario{
 			PlayerCards: helpers.CardsToStrings(sc.Player),
 			DealerCard:  sc.Dealer.ToString(),
+			Pot:         game.StartingPot,
+			Bet:         game.DefaultBet,
+			DeckState:   engine.GetDeckState(),
 		}
 
 		w.Header().Set("Content-Type", "application/json")

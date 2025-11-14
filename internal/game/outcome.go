@@ -8,6 +8,11 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/hand"
 )
 
+const (
+	StartingPot = 1000
+	DefaultBet = 10
+)
+
 func InitialOutcomes(hands [][]card.Card) []string {
 	outcomes := make([]string, len(hands))
 	for i, cards := range hands {
@@ -32,4 +37,20 @@ func FormatOutcomeSummary(outcomes []string) string {
 		parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
 	}
 	return strings.Join(parts, " | ")
+}
+
+func CalculateWinnings(outcomes []string, bet int) int {
+	total := 0
+	for _, outcome := range outcomes {
+		switch outcome {
+		case "Blackjack":
+			total += bet*3/2 + bet
+		case "Win":
+			total += bet
+		case "Lose", "Bust":
+			total -= bet
+		case "Push":
+		}
+	}
+	return total
 }

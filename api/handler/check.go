@@ -19,20 +19,28 @@ type checkRequest struct {
 	Decision       string     `json:"decision"`
 	QueuedHands    [][]string `json:"queuedHands"`
 	CompletedHands [][]string `json:"completedHands"`
+	Pot            int        `json:"pot"`
+	Bet            int        `json:"bet"`
+	TotalWinnings  int        `json:"totalWinnings"`
 }
 
 type checkResponse struct {
-	Correct           bool       `json:"correct"`
-	CorrectDecision   string     `json:"correctDecision"`
-	UserDecision      string     `json:"userDecision"`
-	PlayerCards       []string   `json:"playerCards"`
-	DealerCards       []string   `json:"dealerCards"`
-	QueuedHands       [][]string `json:"queuedHands"`
-	CompletedHands    [][]string `json:"completedHands"`
-	CompletedOutcomes []string   `json:"completedOutcomes"`
-	Outcome           string     `json:"outcome"`
-	RoundComplete     bool       `json:"roundComplete"`
-	Restart           bool       `json:"restart"`
+	Correct           bool                  `json:"correct"`
+	CorrectDecision   string                `json:"correctDecision"`
+	UserDecision      string                `json:"userDecision"`
+	PlayerCards       []string              `json:"playerCards"`
+	DealerCards       []string              `json:"dealerCards"`
+	QueuedHands       [][]string            `json:"queuedHands"`
+	CompletedHands    [][]string            `json:"completedHands"`
+	CompletedOutcomes []string              `json:"completedOutcomes"`
+	Outcome           string                `json:"outcome"`
+	RoundComplete     bool                  `json:"roundComplete"`
+	Restart           bool                  `json:"restart"`
+	Pot               int                   `json:"pot"`
+	Bet               int                   `json:"bet"`
+	RoundWinnings     int                   `json:"roundWinnings"`
+	TotalWinnings     int                   `json:"totalWinnings"`
+	DeckState         game.DeckState         `json:"deckState"`
 }
 
 func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
@@ -95,10 +103,29 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 
 		response.CompletedOutcomes = append([]string{}, state.Outcomes...)
 
+		bet := req.Bet
+		if bet <= 0 {
+			bet = game.DefaultBet
+		}
+		pot := req.Pot
+		if pot <= 0 {
+			pot = game.StartingPot
+		}
+		totalWinnings := req.TotalWinnings
+
+		response.Bet = bet
+		response.Pot = pot
+		response.TotalWinnings = totalWinnings
+
 		if !response.Correct {
 			response.RoundComplete = true
 			response.Restart = true
 			response.DealerCards = helpers.CardsToStrings(dealerHand.Cards)
+			roundWinnings := game.CalculateWinnings(state.Outcomes, bet)
+			response.RoundWinnings = roundWinnings
+			response.TotalWinnings = totalWinnings + roundWinnings
+			response.Pot = pot + roundWinnings
+			response.DeckState = engine.GetDeckState()
 			writeJSON(w, response)
 			return
 		}
@@ -120,6 +147,15 @@ func NewCheck(advisor *strategy.Advisor, engine *game.Engine) http.HandlerFunc {
 		response.DealerCards = helpers.CardsToStrings(resolution.DealerCards)
 		response.Outcome = resolution.Outcome
 		response.RoundComplete = resolution.RoundComplete
+
+		if resolution.RoundComplete {
+			roundWinnings := game.CalculateWinnings(resolution.State.Outcomes, bet)
+			response.RoundWinnings = roundWinnings
+			response.TotalWinnings = totalWinnings + roundWinnings
+			response.Pot = pot + roundWinnings
+		}
+
+		response.DeckState = engine.GetDeckState()
 
 		writeJSON(w, response)
 	}

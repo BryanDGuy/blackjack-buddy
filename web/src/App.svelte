@@ -8,7 +8,7 @@
     PAIR_MATRIX
   } from './constants.js';
 
-  let skipTrivial = true;
+  let skipTrivial = false;
   let playerCards = [];
   let dealerCard = '';
   let dealerCards = [];
@@ -17,6 +17,11 @@
   let completedOutcomes = [];
   let correct = 0;
   let total = 0;
+  let pot = 1000;
+  let bet = 10;
+  let totalWinnings = 0;
+  let roundWinnings = 0;
+  let deckState = { totalCards: 0, rankCounts: {} };
   let resultText = 'Result: -';
   let resultClass = 'result';
   let outcomeText = 'Outcome: -';
@@ -58,6 +63,10 @@
     queuedHands = [];
     completedHands = [];
     completedOutcomes = [];
+    if (total === 0) pot = data.pot || 1000;
+    bet = data.bet || 10;
+    roundWinnings = 0;
+    if (data.deckState) deckState = data.deckState;
     resultText = 'Result: -';
     resultClass = 'result';
     outcomeText = 'Outcome: -';
@@ -82,7 +91,10 @@
           dealerCard,
           decision,
           queuedHands,
-          completedHands
+          completedHands,
+          pot,
+          bet,
+          totalWinnings
         })
       });
       const result = await res.json();
@@ -92,10 +104,28 @@
         correct += 1;
       }
 
+      if (result.pot !== undefined) pot = result.pot;
+      if (result.bet !== undefined) bet = result.bet;
+      if (result.roundWinnings !== undefined) roundWinnings = result.roundWinnings;
+      if (result.totalWinnings !== undefined) totalWinnings = result.totalWinnings;
+      if (result.deckState) deckState = result.deckState;
+
       resultClass = `result ${result.correct ? 'correct' : 'incorrect'}`;
       resultText = `${result.correct ? 'Correct' : 'Incorrect'}: ${result.correctDecision}`;
       outcomeClass = 'result outcome-box';
-      outcomeText = result.outcome ? `Outcome: ${result.outcome}` : 'Outcome: -';
+      if (result.outcome) {
+        let winningsText = '';
+        if (result.roundComplete && result.roundWinnings !== undefined) {
+          const sign = result.roundWinnings >= 0 ? '+' : '';
+          winningsText = ` (${sign}${result.roundWinnings})`;
+        }
+        outcomeText = `Outcome: ${result.outcome}${winningsText}`;
+      } else if (result.roundComplete && result.roundWinnings !== undefined) {
+        const sign = result.roundWinnings >= 0 ? '+' : '';
+        outcomeText = `Outcome: (${sign}${result.roundWinnings})`;
+      } else {
+        outcomeText = 'Outcome: -';
+      }
 
       if (!result.correct || result.restart) {
         nextVisible = true;
@@ -168,6 +198,12 @@
     <div class="stat"><div class="stat-value">{percent}%</div><div class="stat-label">ACCURACY</div></div>
   </div>
 
+  <div class="stats">
+    <div class="stat"><div class="stat-value">{pot}</div><div class="stat-label">POT</div></div>
+    <div class="stat"><div class="stat-value">{bet}</div><div class="stat-label">BET</div></div>
+    <div class="stat"><div class="stat-value">{totalWinnings >= 0 ? '+' : ''}{totalWinnings}</div><div class="stat-label">WINNINGS</div></div>
+  </div>
+
   <div class="options">
     <label class="checkbox"><input type="checkbox" bind:checked={skipTrivial} on:change={loadScenario}> Skip Trivial</label>
   </div>
@@ -200,6 +236,25 @@
   <div class={resultClass}>{resultText}</div>
   <div class={outcomeClass}>{outcomeText}</div>
   <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
+
+  <div class="deck-wrap">
+    <div class="deck-button">D</div>
+    <div class="deck-panel">
+      <div class="section">Deck: {deckState.totalCards} cards</div>
+      <div class="deck-ranks">
+        {#each (() => {
+          const entries = Object.entries(deckState.rankCounts || {});
+          const order = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+          return entries.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+        })() as [rank, count]}
+          <div class="deck-rank-item">
+            <span class="deck-rank">{rank}</span>
+            <span class="deck-count">{count}</span>
+          </div>
+        {/each}
+      </div>
+    </div>
+  </div>
 
   <div class="info-wrap">
     <div class="info-button">i</div>
@@ -432,6 +487,89 @@
 
   .next-btn:hover {
     background: #3a3a3a;
+  }
+
+  .deck-wrap {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 36px;
+    height: 36px;
+    z-index: 10;
+  }
+
+  .deck-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #555;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    position: relative;
+    z-index: 2;
+  }
+
+  .deck-panel {
+    width: 200px;
+    background: rgba(0, 0, 0, 0.92);
+    border: 2px solid #555;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    position: absolute;
+    top: 0;
+    left: 44px;
+    visibility: hidden;
+  }
+
+  .deck-wrap:hover .deck-panel {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  .deck-panel .section {
+    font-weight: bold;
+    text-align: left;
+    padding: 6px 0 4px;
+    margin-bottom: 8px;
+  }
+
+  .deck-ranks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .deck-rank-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  .deck-rank {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .deck-count {
+    font-size: 11px;
+    color: #888;
   }
 
   .info-wrap {

@@ -8,11 +8,45 @@ import (
 )
 
 type Engine struct {
-	rng *rand.Rand
+	rng  *rand.Rand
+	deck []card.Card
 }
 
+const (
+	decksInShoe        = 6
+	cardsPerDeck       = 52
+	reshuffleThreshold = 78
+)
+
 func NewEngine(rng *rand.Rand) *Engine {
-	return &Engine{rng: rng}
+	e := &Engine{rng: rng}
+	e.initializeDeck()
+	return e
+}
+
+func (e *Engine) initializeDeck() {
+	e.deck = make([]card.Card, 0, decksInShoe*cardsPerDeck)
+	ranks := []card.Rank{
+		card.Ace, card.Two, card.Three, card.Four, card.Five,
+		card.Six, card.Seven, card.Eight, card.Nine, card.Ten,
+		card.Jack, card.Queen, card.King,
+	}
+
+	for i := 0; i < decksInShoe; i++ {
+		for _, rank := range ranks {
+			for j := 0; j < 4; j++ {
+				e.deck = append(e.deck, card.NewCard(rank))
+			}
+		}
+	}
+
+	e.shuffle()
+}
+
+func (e *Engine) shuffle() {
+	e.rng.Shuffle(len(e.deck), func(i, j int) {
+		e.deck[i], e.deck[j] = e.deck[j], e.deck[i]
+	})
 }
 
 type Scenario struct {
@@ -37,12 +71,13 @@ func (e *Engine) GenerateScenario(skipTrivial bool) Scenario {
 }
 
 func (e *Engine) DrawCard() card.Card {
-	ranks := []card.Rank{
-		card.Ace, card.Two, card.Three, card.Four, card.Five,
-		card.Six, card.Seven, card.Eight, card.Nine, card.Ten,
-		card.Jack, card.Queen, card.King,
+	if len(e.deck) < reshuffleThreshold {
+		e.initializeDeck()
 	}
-	return card.NewCard(ranks[e.rng.Intn(len(ranks))])
+
+	card := e.deck[0]
+	e.deck = e.deck[1:]
+	return card
 }
 
 func IsTrivialHand(cards []card.Card) bool {
@@ -103,4 +138,21 @@ func (e *Engine) EvaluateAllHands(hands [][]card.Card, dealer card.Card) ([]card
 	}
 
 	return dealerCards, results
+}
+
+type DeckState struct {
+	TotalCards int            `json:"totalCards"`
+	RankCounts map[string]int `json:"rankCounts"`
+}
+
+func (e *Engine) GetDeckState() DeckState {
+	counts := make(map[string]int)
+	for _, c := range e.deck {
+		rankStr := c.ToString()
+		counts[rankStr]++
+	}
+	return DeckState{
+		TotalCards: len(e.deck),
+		RankCounts: counts,
+	}
 }
