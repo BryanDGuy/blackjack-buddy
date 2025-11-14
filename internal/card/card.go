@@ -28,8 +28,6 @@ func NewCard(rank Rank) Card {
 
 func (c Card) Value() int {
 	switch c.Rank {
-	case Ace:
-		return 11
 	case Two:
 		return 2
 	case Three:
@@ -48,6 +46,8 @@ func (c Card) Value() int {
 		return 9
 	case Ten, Jack, Queen, King:
 		return 10
+	case Ace:
+		return 11
 	default:
 		return 0
 	}
@@ -55,8 +55,6 @@ func (c Card) Value() int {
 
 func (c Card) ToString() string {
 	switch c.Rank {
-	case Ace:
-		return "A"
 	case Two:
 		return "2"
 	case Three:
@@ -81,6 +79,8 @@ func (c Card) ToString() string {
 		return "Q"
 	case King:
 		return "K"
+	case Ace:
+		return "A"
 	default:
 		return "?"
 	}
