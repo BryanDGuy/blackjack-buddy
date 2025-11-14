@@ -50,7 +50,6 @@ func (s *server) Start(port int) error {
 	mux.HandleFunc("/", s.handleUI)
 
 	addr := fmt.Sprintf(":%d", port)
-	fmt.Printf("http://localhost%s\n", addr)
 
 	srv := &http.Server{
 		Addr:    addr,

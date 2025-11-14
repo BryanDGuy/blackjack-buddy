@@ -44,12 +44,16 @@
 - `internal/card`: Card representation (rank-only)
 - `internal/hand`: Hand evaluation and scoring
 - `internal/strategy`: Decision logic and strategy interface
-- `internal/game`: Scenario generation, round evaluation, dealer flow
+- `internal/game`: Deal generation, round evaluation, dealer flow, deck management
 - `api`: HTTP server entrypoint
-  - `api/handler`: Request handlers
+  - `api/handler`: Request handlers (deal, check, hint)
   - `api/helpers`: Transport-only helpers (string/card conversion, etc.)
   - `api/assets`: Embedded Svelte build output
-- `web`: Svelte trainer UI
+- `web`: TypeScript Svelte trainer UI
+  - `web/src/components`: Reusable Svelte components (Stats, DeckPanel, StrategyTable)
+  - `web/src/api.ts`: API client functions with TypeScript types
+  - `web/src/utils.ts`: Utility functions
+  - `web/src/constants.ts`: Strategy matrices and constants
 
 ## Development Rules
 
@@ -82,6 +86,8 @@
 - Next round must require explicit click or `N`; do not auto-load new scenarios
 - Maintain consistent element placement with placeholder text and fixed heights
 - Show completed split-hand outcomes; omit queued-hand lists unless carrying value beyond layout
+- Use TypeScript for all web code; keep components modular and reusable
+- API calls should use typed interfaces from `api.ts`
 
 ## Anti-Patterns to Avoid
 ❌ Emojis anywhere in code or output
