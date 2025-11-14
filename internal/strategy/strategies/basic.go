@@ -9,6 +9,7 @@ import (
 )
 
 var decisionMatrix = [hand.Pair2 + 1][]strategy.Decision{
+	hand.Hard21: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard20: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard19: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},
 	hand.Hard18: {strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand, strategy.Stand},

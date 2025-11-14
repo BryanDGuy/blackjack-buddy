@@ -51,7 +51,7 @@ func NewCustom(decisionMatrix DecisionMatrix) (*Custom, error) {
 }
 
 func validateMatrix(matrix DecisionMatrix) error {
-	for handType := hand.Hard20; handType <= hand.Pair2; handType++ {
+	for handType := hand.Hard21; handType <= hand.Pair2; handType++ {
 		if matrix[handType] == nil {
 			return fmt.Errorf("matrix[%d] is nil", handType)
 		}

@@ -87,7 +87,7 @@ func IsTrivialHand(cards []card.Card) bool {
 	}
 
 	switch h.GetType() {
-	case hand.Hard20, hand.Hard19, hand.Hard18, hand.Hard17:
+	case hand.Hard21, hand.Hard20, hand.Hard19, hand.Hard18, hand.Hard17:
 		return true
 	case hand.Hard8, hand.Hard7, hand.Hard6, hand.Hard5, hand.Hard4:
 		return true

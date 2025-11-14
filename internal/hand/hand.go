@@ -98,7 +98,8 @@ func (h *Hand) CanSplit() bool {
 type HandType int
 
 const (
-	Hard20 HandType = iota
+	Hard21 HandType = iota
+	Hard20
 	Hard19
 	Hard18
 	Hard17
@@ -190,6 +191,8 @@ func (h *Hand) GetType() HandType {
 	}
 
 	switch value {
+	case 21:
+		return Hard21
 	case 20:
 		return Hard20
 	case 19:
