@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	//go:embed assets/* assets/assets/*
+	//go:embed assets
 	ui embed.FS
 )
 
