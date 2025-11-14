@@ -77,23 +77,19 @@ func (h *Hand) IsSoft() bool {
 		return false
 	}
 
-	total := 0
+	totalWithoutAces := 0
 	aces := 0
 
 	for _, c := range h.Cards {
 		if c.Rank == card.Ace {
 			aces++
 		} else {
-			total += c.Value()
+			totalWithoutAces += c.Value()
 		}
 	}
 
-	if aces == 0 {
-		return false
-	}
-
-	oneAceAs11 := total + 11 + (aces - 1)
-	return oneAceAs11 <= 21
+	// Checks if there is at least one ace and the hand is not a bust if the ace is counted as 11.
+	return aces > 0 && totalWithoutAces+11+(aces-1) <= 21
 }
 
 type HandType int
