@@ -61,5 +61,11 @@ func (a *Advisor) MakeDecision(playerHand, dealerHand *hand.Hand) (Decision, err
 		return Stand, nil
 	}
 
-	return a.strategy.GetDecision(playerHand, dealerHand), nil
+	decision := a.strategy.GetDecision(playerHand, dealerHand)
+
+	if decision == DoubleDown && len(playerHand.Cards) > 2 {
+		decision = Hit
+	}
+
+	return decision, nil
 }

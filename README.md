@@ -11,7 +11,7 @@ Blackjack decision assistant implementing basic strategy. Minimal CLI written in
 
 ## Quick Start
 
-**Requirements:** Go 1.25.1+, Make
+**Requirements:** Go 1.25.1+, Make, Node 18+
 
 ```bash
 git clone https://github.com/bryan/blackjack-buddy.git
@@ -21,30 +21,9 @@ make build
 
 ## Usage
 
-### Interactive
 ```bash
-./blackjack-buddy
-# Strategy (basic/coward): basic
-# Your cards: A 7
-# Dealer card: K
-# [A, 7] | Dealer: K | Action: HIT
-```
-
-### Training (Web GUI)
-```bash
-./blackjack-buddy -train [-strategy=<basic|coward>]
+./blackjack-buddy [-port=8080] [-strategy=basic]
 # http://localhost:8080
 ```
 
-**Flags:** `-train`, `-strategy=<basic|coward>`
-
-## Development
-
-```bash
-make build   # Build and run: make run
-make clean   # Show targets: make help
-```
-
-## Structure
-
-`internal/card` | `internal/hand` | `internal/strategy` | `internal/trainer` | `cmd/blackjack-buddy`
+The bundled web UI serves from the same address. Strategy flag accepts any value supported by `internal/strategy/strategies` (e.g. `basic`, `coward`).
