@@ -184,13 +184,29 @@
     </div>
   </div>
 
-  <div class="section">
-    <div class="label">Your Cards</div>
-    <div class="cards">
-      {#each playerCards as card, index}
-        <div class="card" data-index={index}>{card}</div>
-      {/each}
+  <div class="hands-container">
+    <div class="section">
+      <div class="label">Your Cards</div>
+      <div class="cards">
+        {#each playerCards as card, index}
+          <div class="card" data-index={index}>{card}</div>
+        {/each}
+      </div>
     </div>
+    {#if inactiveHands.length > 0}
+      <div class="inactive-hands">
+        {#each inactiveHands as hand, handIndex}
+          <div class="inactive-hand">
+            <div class="label">Hand {handIndex + 1}</div>
+            <div class="cards">
+              {#each hand as card, index}
+                <div class="card inactive" data-index={index}>{card}</div>
+              {/each}
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   <div class="buttons-section">
@@ -262,8 +278,15 @@
     margin-top: 4px;
   }
 
+  .hands-container {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
   .section {
     margin: 16px 0;
+    flex: 1;
   }
 
   .label {
@@ -297,6 +320,38 @@
     justify-content: center;
     font-weight: bold;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .card.inactive {
+    opacity: 0.4;
+    background: #ddd;
+  }
+
+  .inactive-hands {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 200px;
+  }
+
+  .inactive-hand {
+    opacity: 0.5;
+  }
+
+  .inactive-hand .label {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .inactive-hand .cards {
+    margin: 8px 0;
+  }
+
+  .inactive-hand .card {
+    width: 60px;
+    height: 84px;
+    font-size: 24px;
+    margin: 0 4px;
   }
 
   .buttons-section {
