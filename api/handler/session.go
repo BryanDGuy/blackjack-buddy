@@ -2,9 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/game"
@@ -17,8 +15,7 @@ func NewSession(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-		session := game.NewSession(rng)
+		session := game.NewSession()
 		gameSession := game.NewGameSession(session)
 
 		sessionID := store.Create(gameSession)
@@ -34,4 +31,3 @@ func NewSession(store *store.SessionStore) http.HandlerFunc {
 		json.NewEncoder(w).Encode(resp)
 	}
 }
-

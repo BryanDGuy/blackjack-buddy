@@ -2,6 +2,8 @@ package game
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/hand"
@@ -164,7 +166,20 @@ func settleDealer(res RoundResolution, session *Session) RoundResolution {
 		res.State.Outcomes = append(res.State.Outcomes, outcomes[i])
 	}
 
-	res.Outcome = FormatOutcomeSummary(res.State.Outcomes)
+	if len(outcomes) == 0 {
+		res.Outcome = ""
+	} else {
+		parts := make([]string, 0, len(outcomes))
+		for i, outcome := range outcomes {
+			label := outcome
+			if label == "" {
+				label = "Pending"
+			}
+			parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
+		}
+		res.Outcome = strings.Join(parts, " | ")
+	}
+
 	return res
 }
 

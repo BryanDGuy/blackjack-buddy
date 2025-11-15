@@ -58,4 +58,3 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 		json.NewEncoder(w).Encode(resp)
 	}
 }
-

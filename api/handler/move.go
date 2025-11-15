@@ -153,4 +153,3 @@ func isValidMove(playerHand *hand.Hand, dealerHand *hand.Hand, decision strategy
 		return false
 	}
 }
-

@@ -1,52 +1,48 @@
 package game
 
 import (
+	"maps"
 	"math/rand"
+	"time"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
+	"github.com/bryan/blackjack-buddy/internal/deck"
 	"github.com/bryan/blackjack-buddy/internal/hand"
+	"github.com/bryan/blackjack-buddy/internal/shoe"
+)
+
+const (
+	decksInShoe        = 6
+	reshuffleThreshold = 78
 )
 
 type Session struct {
 	rng  *rand.Rand
-	deck []card.Card
+	shoe shoe.Shoe
 }
 
-const (
-	decksInShoe        = 6
-	cardsPerDeck       = 52
-	reshuffleThreshold = 78
-)
+func NewSession() *Session {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	shoe := freshSession(rng)
 
-func NewSession(rng *rand.Rand) *Session {
-	s := &Session{rng: rng}
-	s.initializeDeck()
+	return &Session{
+		rng:  rng,
+		shoe: shoe,
+	}
+}
+
+func freshSession(rng *rand.Rand) shoe.Shoe {
+	decks := make([]deck.Deck, 0, decksInShoe)
+	for range decksInShoe {
+		d := deck.NewDeck(rng)
+		d.Shuffle(rng)
+		decks = append(decks, d)
+	}
+
+	s := shoe.NewShoe(decks)
+	s.Shuffle(rng)
+
 	return s
-}
-
-func (s *Session) initializeDeck() {
-	s.deck = make([]card.Card, 0, decksInShoe*cardsPerDeck)
-	ranks := []card.Rank{
-		card.Two, card.Three, card.Four, card.Five,
-		card.Six, card.Seven, card.Eight, card.Nine, card.Ten,
-		card.Jack, card.Queen, card.King, card.Ace,
-	}
-
-	for i := 0; i < decksInShoe; i++ {
-		for _, rank := range ranks {
-			for j := 0; j < 4; j++ {
-				s.deck = append(s.deck, card.NewCard(rank))
-			}
-		}
-	}
-
-	s.shuffle()
-}
-
-func (s *Session) shuffle() {
-	s.rng.Shuffle(len(s.deck), func(i, j int) {
-		s.deck[i], s.deck[j] = s.deck[j], s.deck[i]
-	})
 }
 
 type Deal struct {
@@ -65,13 +61,10 @@ func (s *Session) GenerateDeal() Deal {
 }
 
 func (s *Session) DrawCard() card.Card {
-	if len(s.deck) < reshuffleThreshold {
-		s.initializeDeck()
+	if len(s.shoe.Cards) < reshuffleThreshold {
+		s.shoe = freshSession(s.rng)
 	}
-
-	card := s.deck[0]
-	s.deck = s.deck[1:]
-	return card
+	return s.shoe.Draw()
 }
 
 func (s *Session) FinishDealer(cards []card.Card) []card.Card {
@@ -118,19 +111,16 @@ func (s *Session) EvaluateAllHands(hands [][]card.Card, dealer card.Card) ([]car
 	return dealerCards, results
 }
 
+func (s *Session) GetDeckState() DeckState {
+	counts := make(map[string]int)
+	maps.Copy(counts, s.shoe.RankCounts)
+	return DeckState{
+		TotalCards: s.shoe.TotalCards,
+		RankCounts: counts,
+	}
+}
+
 type DeckState struct {
 	TotalCards int            `json:"totalCards"`
 	RankCounts map[string]int `json:"rankCounts"`
-}
-
-func (s *Session) GetDeckState() DeckState {
-	counts := make(map[string]int)
-	for _, c := range s.deck {
-		rankStr := c.ToString()
-		counts[rankStr]++
-	}
-	return DeckState{
-		TotalCards: len(s.deck),
-		RankCounts: counts,
-	}
 }
