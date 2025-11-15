@@ -1,28 +1,25 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { KEY_BINDINGS } from './constants';
-  import { loadDeal, checkDecision, getHint } from './api';
+  import { loadDeal, makeMove, getHint } from './api';
   import Stats from './components/Stats.svelte';
   import DeckPanel from './components/DeckPanel.svelte';
   import StrategyTable from './components/StrategyTable.svelte';
 
-  let skipTrivial = false;
   let playerCards: string[] = [];
   let dealerCard = '';
   let dealerCards: string[] = [];
-  let queuedHands: string[][] = [];
-  let completedHands: string[][] = [];
+  let inactiveHands: string[][] = [];
   let correct = 0;
   let total = 0;
-  let pot = 1000;
-  let bet = 10;
-  let totalWinnings = 0;
   let deckState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
   let hint = '';
   let resultText = 'Result: -';
   let resultClass = 'result';
   let outcomeText = 'Outcome: -';
   let outcomeClass = 'result outcome-box';
+  let outcomes: string[] = [];
+  let roundState = 'none';
   let nextVisible = false;
   let busy = false;
   let locked = false;
@@ -32,106 +29,99 @@
   
   let hintKey = '';
   $: {
-    const newKey = `${playerCards.join(',')}-${dealerCard}`;
-    if (newKey !== hintKey && playerCards.length && dealerCard && !locked) {
-      hintKey = newKey;
-      updateHint();
+    if (!busy && roundState === 'active' && !locked) {
+      const newKey = `${playerCards.join(',')}-${dealerCard}`;
+      if (newKey !== hintKey && playerCards.length && dealerCard) {
+        hintKey = newKey;
+        updateHint();
+      }
+    } else if (roundState !== 'active') {
+      hint = '';
+      hintKey = '';
     }
   }
   
   async function updateHint() {
-    if (!playerCards.length || !dealerCard || locked) return;
-    hint = await getHint({ playerCards, dealerCard });
+    if (!playerCards.length || !dealerCard || locked || roundState !== 'active' || busy) {
+      return;
+    }
+    hint = await getHint();
   }
 
   async function handleLoadDeal() {
-    const data = await loadDeal(skipTrivial);
-    playerCards = data.playerCards;
-    dealerCard = data.dealerCard;
-    dealerCards = dealerCard ? [dealerCard] : [];
-    queuedHands = [];
-    completedHands = [];
-    if (total === 0) pot = data.pot;
-    bet = data.bet;
-    deckState = data.deckState;
-    hint = data.hint;
-    resultText = 'Result: -';
-    resultClass = 'result';
-    outcomeText = 'Outcome: -';
-    outcomeClass = 'result outcome-box';
-    nextVisible = false;
-    locked = false;
+    try {
+      const data = await loadDeal();
+      playerCards = data.playerCards;
+      dealerCard = data.dealerCard;
+      dealerCards = dealerCard ? [dealerCard] : [];
+      inactiveHands = [];
+      outcomes = [];
+      roundState = 'active';
+      deckState = data.deckState;
+      hint = '';
+      resultText = 'Result: -';
+      resultClass = 'result';
+      outcomeText = 'Outcome: -';
+      outcomeClass = 'result outcome-box';
+      nextVisible = false;
+      locked = false;
+    } catch (err) {
+      console.error('Failed to load deal:', err);
+      alert(`Failed to load deal: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   async function decide(decision: string) {
-    if (locked || busy) {
+    if (locked || busy || roundState !== 'active') {
       return;
     }
+
+    const expectedHint = hint;
+    const isCorrect = expectedHint === decision;
 
     busy = true;
 
     try {
-      const result = await checkDecision({
-        playerCards,
-        dealerCard,
-        decision,
-        queuedHands,
-        completedHands,
-        pot,
-        bet,
-        totalWinnings
-      });
+      const result = await makeMove(decision);
 
       total += 1;
-      if (result.correct) {
+      roundState = result.roundState;
+      playerCards = result.activeHand;
+      inactiveHands = result.inactiveHands;
+      outcomes = result.outcomes;
+      deckState = result.deckState;
+
+      if (result.dealerCards.length > 0) {
+        dealerCards = result.dealerCards;
+      }
+
+      if (isCorrect) {
         correct += 1;
       }
 
-      pot = result.pot;
-      bet = result.bet;
-      totalWinnings = result.totalWinnings;
-      deckState = result.deckState;
-      hint = result.hint;
-
-      resultClass = `result ${result.correct ? 'correct' : 'incorrect'}`;
-      resultText = `${result.correct ? 'Correct' : 'Incorrect'}: ${result.correctDecision}`;
+      resultClass = `result ${isCorrect ? 'correct' : 'incorrect'}`;
+      resultText = `${isCorrect ? 'Correct' : 'Incorrect'}: ${expectedHint || decision}`;
       outcomeClass = 'result outcome-box';
-      if (result.outcome) {
-        let winningsText = '';
-        if (result.roundComplete) {
-          const sign = result.roundWinnings >= 0 ? '+' : '';
-          winningsText = ` (${sign}${result.roundWinnings})`;
-        }
-        outcomeText = `Outcome: ${result.outcome}${winningsText}`;
-      } else if (result.roundComplete) {
-        const sign = result.roundWinnings >= 0 ? '+' : '';
-        outcomeText = `Outcome: (${sign}${result.roundWinnings})`;
+      
+      if (result.outcomes.length > 0) {
+        const outcomeSummary = result.outcomes.join(' | ');
+        outcomeText = `Outcome: ${outcomeSummary}`;
       } else {
         outcomeText = 'Outcome: -';
       }
 
-      if (!result.correct || result.restart) {
+      if (result.roundState === 'complete') {
         nextVisible = true;
-      }
-
-      if (Array.isArray(result.playerCards) && result.playerCards.length) {
-        playerCards = result.playerCards;
-      }
-      if (Array.isArray(result.dealerCards) && result.dealerCards.length) {
-        dealerCards = result.dealerCards;
-      }
-
-      queuedHands = Array.isArray(result.queuedHands) ? result.queuedHands : [];
-      completedHands = Array.isArray(result.completedHands) ? result.completedHands : [];
-
-      if (result.roundComplete && queuedHands.length === 0 && result.correct && !result.restart) {
+        locked = true;
+      } else if (!isCorrect) {
         nextVisible = true;
-      }
-      if (!result.roundComplete && result.correct && !result.restart) {
+        locked = true;
+      } else {
         nextVisible = false;
       }
+    } catch (err) {
+      console.error('Failed to make move:', err);
     } finally {
-      locked = nextVisible;
       busy = false;
     }
   }
@@ -141,8 +131,12 @@
       return;
     }
     busy = true;
+    locked = false;
     try {
       await handleLoadDeal();
+    } catch (err) {
+      console.error('Failed to start next round:', err);
+      alert(`Failed to start next round: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       busy = false;
     }
@@ -179,19 +173,6 @@
     <Stats value={correct} label="CORRECT" />
     <Stats value={total} label="TOTAL" />
     <Stats value={percent} label="ACCURACY" />
-  </div>
-
-  <div class="stats">
-    <Stats value={pot} label="POT" />
-    <Stats value={bet} label="BET" />
-    <div class="stat">
-      <div class="stat-value">{totalWinnings >= 0 ? '+' : ''}{totalWinnings}</div>
-      <div class="stat-label">WINNINGS</div>
-    </div>
-  </div>
-
-  <div class="options">
-    <label class="checkbox"><input type="checkbox" bind:checked={skipTrivial} on:change={handleLoadDeal}> Skip Trivial</label>
   </div>
 
   <div class="section">
@@ -279,21 +260,6 @@
     font-size: 12px;
     color: #888;
     margin-top: 4px;
-  }
-
-  .options {
-    text-align: center;
-  }
-
-  .checkbox {
-    font-size: 14px;
-    color: #fff;
-    cursor: pointer;
-  }
-
-  .checkbox input {
-    margin-right: 8px;
-    cursor: pointer;
   }
 
   .section {

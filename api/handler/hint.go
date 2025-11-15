@@ -3,42 +3,46 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
-	"github.com/bryan/blackjack-buddy/api/helpers"
+	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/card"
+	"github.com/bryan/blackjack-buddy/internal/game"
 	"github.com/bryan/blackjack-buddy/internal/hand"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-func NewHint(advisor *strategy.Advisor) http.HandlerFunc {
+func NewHint(store *store.SessionStore, advisor *strategy.Advisor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			PlayerCards []string `json:"playerCards"`
-			DealerCard  string   `json:"dealerCard"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request", http.StatusBadRequest)
+		if r.Method != "GET" {
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET method is allowed")
 			return
 		}
 
-		playerCards, err := helpers.CardsFromStrings(req.PlayerCards)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+		if len(pathParts) < 4 {
+			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid session ID in path")
 			return
 		}
 
-		dealerCard, err := helpers.ParseCardFromString(req.DealerCard)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		sessionID := pathParts[2]
+		gameSession, exists := store.Get(sessionID)
+		if !exists {
+			writeError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found")
 			return
 		}
 
-		playerHand := hand.NewHand(playerCards)
-		dealerHand := hand.NewHand([]card.Card{dealerCard})
+		if gameSession.RoundState != game.RoundStateActive {
+			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
+			return
+		}
+
+		playerHand := hand.NewHand(gameSession.ActiveHand)
+		dealerHand := hand.NewHand([]card.Card{gameSession.DealerCard})
 
 		decision, err := advisor.MakeDecision(playerHand, dealerHand)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to get hint")
 			return
 		}
 
@@ -52,3 +56,4 @@ func NewHint(advisor *strategy.Advisor) http.HandlerFunc {
 		json.NewEncoder(w).Encode(resp)
 	}
 }
+

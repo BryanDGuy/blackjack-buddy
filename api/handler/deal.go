@@ -3,49 +3,58 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/bryan/blackjack-buddy/api/helpers"
-	"github.com/bryan/blackjack-buddy/internal/card"
+	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/game"
-	"github.com/bryan/blackjack-buddy/internal/hand"
-	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-type deal struct {
-	PlayerCards []string       `json:"playerCards"`
-	DealerCard  string         `json:"dealerCard"`
-	Pot         int            `json:"pot"`
-	Bet         int            `json:"bet"`
-	DeckState   game.DeckState `json:"deckState"`
-	Hint        string         `json:"hint"`
-}
-
-type dealRequest struct {
-	SkipTrivial bool `json:"skipTrivial"`
-}
-
-func NewDeal(engine *game.Engine, advisor *strategy.Advisor) http.HandlerFunc {
+func NewDeal(store *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req dealRequest
-		if r.Method == "POST" {
-			json.NewDecoder(r.Body).Decode(&req)
+		if r.Method != "POST" {
+			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST method is allowed")
+			return
 		}
 
-		d := engine.GenerateDeal(req.SkipTrivial)
-		playerHand := hand.NewHand(d.Player)
-		dealerHand := hand.NewHand([]card.Card{d.Dealer})
-		decision, _ := advisor.MakeDecision(playerHand, dealerHand)
-		hint := decision.ToString()
-		resp := deal{
-			PlayerCards: helpers.CardsToStrings(d.Player),
-			DealerCard:  d.Dealer.ToString(),
-			Pot:         game.StartingPot,
-			Bet:         game.DefaultBet,
-			DeckState:   engine.GetDeckState(),
-			Hint:        hint,
+		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+		if len(pathParts) < 4 {
+			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid session ID in path")
+			return
+		}
+
+		sessionID := pathParts[2]
+		gameSession, exists := store.Get(sessionID)
+		if !exists {
+			writeError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found")
+			return
+		}
+
+		if gameSession.RoundState == game.RoundStateActive {
+			writeError(w, http.StatusConflict, "ROUND_ALREADY_ACTIVE", "Round is already active")
+			return
+		}
+
+		deal := gameSession.Session.GenerateDeal()
+		gameSession.ActiveHand = deal.Player
+		gameSession.InactiveHands = nil
+		gameSession.DealerCard = deal.Dealer
+		gameSession.DealerCards = nil
+		gameSession.Outcomes = nil
+		gameSession.RoundState = game.RoundStateActive
+
+		resp := struct {
+			PlayerCards []string       `json:"playerCards"`
+			DealerCard  string         `json:"dealerCard"`
+			DeckState   game.DeckState `json:"deckState"`
+		}{
+			PlayerCards: helpers.CardsToStrings(deal.Player),
+			DealerCard:  deal.Dealer.ToString(),
+			DeckState:   gameSession.Session.GetDeckState(),
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}
 }
+

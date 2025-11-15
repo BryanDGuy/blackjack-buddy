@@ -7,7 +7,7 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/hand"
 )
 
-type Engine struct {
+type Session struct {
 	rng  *rand.Rand
 	deck []card.Card
 }
@@ -18,14 +18,14 @@ const (
 	reshuffleThreshold = 78
 )
 
-func NewEngine(rng *rand.Rand) *Engine {
-	e := &Engine{rng: rng}
-	e.initializeDeck()
-	return e
+func NewSession(rng *rand.Rand) *Session {
+	s := &Session{rng: rng}
+	s.initializeDeck()
+	return s
 }
 
-func (e *Engine) initializeDeck() {
-	e.deck = make([]card.Card, 0, decksInShoe*cardsPerDeck)
+func (s *Session) initializeDeck() {
+	s.deck = make([]card.Card, 0, decksInShoe*cardsPerDeck)
 	ranks := []card.Rank{
 		card.Two, card.Three, card.Four, card.Five,
 		card.Six, card.Seven, card.Eight, card.Nine, card.Ten,
@@ -35,17 +35,17 @@ func (e *Engine) initializeDeck() {
 	for i := 0; i < decksInShoe; i++ {
 		for _, rank := range ranks {
 			for j := 0; j < 4; j++ {
-				e.deck = append(e.deck, card.NewCard(rank))
+				s.deck = append(s.deck, card.NewCard(rank))
 			}
 		}
 	}
 
-	e.shuffle()
+	s.shuffle()
 }
 
-func (e *Engine) shuffle() {
-	e.rng.Shuffle(len(e.deck), func(i, j int) {
-		e.deck[i], e.deck[j] = e.deck[j], e.deck[i]
+func (s *Session) shuffle() {
+	s.rng.Shuffle(len(s.deck), func(i, j int) {
+		s.deck[i], s.deck[j] = s.deck[j], s.deck[i]
 	})
 }
 
@@ -54,64 +54,42 @@ type Deal struct {
 	Dealer card.Card
 }
 
-func (e *Engine) GenerateDeal(skipTrivial bool) Deal {
-	for {
-		player := []card.Card{e.DrawCard(), e.DrawCard()}
-		dealer := e.DrawCard()
+func (s *Session) GenerateDeal() Deal {
+	player := []card.Card{s.DrawCard(), s.DrawCard()}
+	dealer := s.DrawCard()
 
-		if skipTrivial && IsTrivialHand(player) {
-			continue
-		}
-
-		return Deal{
-			Player: player,
-			Dealer: dealer,
-		}
+	return Deal{
+		Player: player,
+		Dealer: dealer,
 	}
 }
 
-func (e *Engine) DrawCard() card.Card {
-	if len(e.deck) < reshuffleThreshold {
-		e.initializeDeck()
+func (s *Session) DrawCard() card.Card {
+	if len(s.deck) < reshuffleThreshold {
+		s.initializeDeck()
 	}
 
-	card := e.deck[0]
-	e.deck = e.deck[1:]
+	card := s.deck[0]
+	s.deck = s.deck[1:]
 	return card
 }
 
-func IsTrivialHand(cards []card.Card) bool {
-	h := hand.NewHand(cards)
-	if h.IsBlackjack() {
-		return true
-	}
-
-	switch h.GetType() {
-	case hand.Hard21, hand.Hard20, hand.Hard19, hand.Hard18, hand.Hard17:
-		return true
-	case hand.Hard8, hand.Hard7, hand.Hard6, hand.Hard5, hand.Hard4:
-		return true
-	default:
-		return false
-	}
-}
-
-func (e *Engine) FinishDealer(cards []card.Card) []card.Card {
+func (s *Session) FinishDealer(cards []card.Card) []card.Card {
 	current := append([]card.Card{}, cards...)
 	dealerHand := hand.NewHand(current)
 	if len(dealerHand.Cards) == 1 {
-		dealerHand = hand.NewHand(append(dealerHand.Cards, e.DrawCard()))
+		dealerHand = hand.NewHand(append(dealerHand.Cards, s.DrawCard()))
 	}
 
 	for dealerHand.Value() < 17 {
-		dealerHand = hand.NewHand(append(dealerHand.Cards, e.DrawCard()))
+		dealerHand = hand.NewHand(append(dealerHand.Cards, s.DrawCard()))
 	}
 
 	return dealerHand.Cards
 }
 
-func (e *Engine) EvaluateAllHands(hands [][]card.Card, dealer card.Card) ([]card.Card, []string) {
-	dealerCards := e.FinishDealer([]card.Card{dealer})
+func (s *Session) EvaluateAllHands(hands [][]card.Card, dealer card.Card) ([]card.Card, []string) {
+	dealerCards := s.FinishDealer([]card.Card{dealer})
 	finalDealer := hand.NewHand(dealerCards)
 	results := make([]string, len(hands))
 
@@ -145,14 +123,14 @@ type DeckState struct {
 	RankCounts map[string]int `json:"rankCounts"`
 }
 
-func (e *Engine) GetDeckState() DeckState {
+func (s *Session) GetDeckState() DeckState {
 	counts := make(map[string]int)
-	for _, c := range e.deck {
+	for _, c := range s.deck {
 		rankStr := c.ToString()
 		counts[rankStr]++
 	}
 	return DeckState{
-		TotalCards: len(e.deck),
+		TotalCards: len(s.deck),
 		RankCounts: counts,
 	}
 }

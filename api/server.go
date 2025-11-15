@@ -3,28 +3,25 @@ package main
 import (
 	"fmt"
 	"io/fs"
-	"math/rand"
 	"net/http"
-	"time"
+	"strings"
 
 	"github.com/bryan/blackjack-buddy/api/handler"
-	"github.com/bryan/blackjack-buddy/internal/game"
+	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
 type server struct {
-	advisor *strategy.Advisor
-	engine  *game.Engine
-	ui      fs.FS
+	advisor     *strategy.Advisor
+	sessionStore *store.SessionStore
+	ui          fs.FS
 }
 
 func newServer(strat strategy.Strategy) *server {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	return &server{
-		advisor: strategy.NewAdvisor(strat),
-		engine:  game.NewEngine(rng),
-		ui:      loadUI(),
+		advisor:     strategy.NewAdvisor(strat),
+		sessionStore: store.NewSessionStore(),
+		ui:          loadUI(),
 	}
 }
 
@@ -41,9 +38,31 @@ func (s *server) handleUI(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) Start(port int) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/deal", handler.NewDeal(s.engine, s.advisor))
-	mux.HandleFunc("/api/check", handler.NewCheck(s.advisor, s.engine))
-	mux.HandleFunc("/api/hint", handler.NewHint(s.advisor))
+	
+	mux.HandleFunc("/api/session", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/session" {
+			handler.NewSession(s.sessionStore)(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})
+	
+	mux.HandleFunc("/api/session/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.HasSuffix(path, "/deal") && r.Method == "POST" {
+			handler.NewDeal(s.sessionStore)(w, r)
+			return
+		}
+		if strings.HasSuffix(path, "/move") && r.Method == "POST" {
+			handler.NewMove(s.sessionStore)(w, r)
+			return
+		}
+		if strings.HasSuffix(path, "/hint") && r.Method == "GET" {
+			handler.NewHint(s.sessionStore, s.advisor)(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})
 
 	fileServer := http.FileServer(http.FS(s.ui))
 	mux.Handle("/assets/", fileServer)
