@@ -22,11 +22,9 @@ type Session struct {
 }
 
 func NewSession() *Session {
-	shoe := generateShuffledShoe()
-
 	return &Session{
 		ID:   uuid.New().String(),
-		Shoe: shoe,
+		Shoe: generateShuffledShoe(),
 	}
 }
 
