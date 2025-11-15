@@ -13,7 +13,7 @@
   let completedHands: string[][] = [];
   let correct = 0;
   let total = 0;
-  let deckState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
+  let shoeState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
   let hint = '';
   let resultText = 'Result: -';
   let resultClass = 'result';
@@ -59,7 +59,7 @@
       completedHands = [];
       outcomes = [];
       roundState = 'active';
-      deckState = data.deckState;
+      shoeState = data.shoeState;
       hint = '';
       resultText = 'Result: -';
       resultClass = 'result';
@@ -92,7 +92,7 @@
       inactiveHands = result.inactiveHands;
       completedHands = result.completedHands || [];
       outcomes = result.outcomes;
-      deckState = result.deckState;
+      shoeState = result.shoeState;
 
       if (result.dealerCards.length > 0) {
         dealerCards = result.dealerCards;
@@ -237,7 +237,7 @@
   <div class={outcomeClass}>{outcomeText}</div>
   <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
 
-  <DeckPanel {deckState} />
+  <DeckPanel {shoeState} />
   <StrategyTable />
 </div>
 

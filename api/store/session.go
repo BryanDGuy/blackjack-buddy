@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/bryan/blackjack-buddy/internal/game"
-	"github.com/google/uuid"
 )
 
 type SessionStore struct {
@@ -22,9 +21,8 @@ func (s *SessionStore) Create(session *game.GameSession) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	id := uuid.New().String()
-	s.sessions[id] = session
-	return id
+	s.sessions[session.Session.ID] = session
+	return session.Session.ID
 }
 
 func (s *SessionStore) Get(id string) (*game.GameSession, bool) {
@@ -34,4 +32,3 @@ func (s *SessionStore) Get(id string) (*game.GameSession, bool) {
 	session, exists := s.sessions[id]
 	return session, exists
 }
-

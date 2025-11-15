@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"strings"
 
+	"maps"
+
 	"github.com/bryan/blackjack-buddy/api/helpers"
 	"github.com/bryan/blackjack-buddy/api/store"
-	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/game"
 	"github.com/bryan/blackjack-buddy/internal/hand"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
@@ -57,9 +58,8 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		}
 
 		playerHand := hand.NewHand(gameSession.ActiveHand)
-		dealerHand := hand.NewHand([]card.Card{gameSession.DealerCard})
 
-		if !isValidMove(playerHand, dealerHand, decision) {
+		if !isValidMove(playerHand, decision) {
 			writeError(w, http.StatusBadRequest, "INVALID_MOVE", "Move is not valid for current hand state")
 			return
 		}
@@ -101,14 +101,21 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			gameSession.RoundState = game.RoundStateActive
 		}
 
+		s := gameSession.Session.Shoe
+		counts := make(map[string]int)
+		maps.Copy(counts, s.RankCounts)
+
 		resp := struct {
-			RoundState     string         `json:"roundState"`
-			ActiveHand     []string       `json:"activeHand"`
-			InactiveHands  [][]string     `json:"inactiveHands"`
-			CompletedHands [][]string     `json:"completedHands"`
-			DealerCards    []string       `json:"dealerCards"`
-			Outcomes       []string       `json:"outcomes"`
-			DeckState      game.DeckState `json:"deckState"`
+			RoundState     string     `json:"roundState"`
+			ActiveHand     []string   `json:"activeHand"`
+			InactiveHands  [][]string `json:"inactiveHands"`
+			CompletedHands [][]string `json:"completedHands"`
+			DealerCards    []string   `json:"dealerCards"`
+			Outcomes       []string   `json:"outcomes"`
+			ShoeState      struct {
+				TotalCards int            `json:"totalCards"`
+				RankCounts map[string]int `json:"rankCounts"`
+			} `json:"shoeState"`
 		}{
 			RoundState:     string(gameSession.RoundState),
 			ActiveHand:     helpers.CardsToStrings(gameSession.ActiveHand),
@@ -116,7 +123,13 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			CompletedHands: helpers.HandsToStrings(gameSession.CompletedHands),
 			DealerCards:    helpers.CardsToStrings(gameSession.DealerCards),
 			Outcomes:       gameSession.Outcomes,
-			DeckState:      gameSession.Session.GetDeckState(),
+			ShoeState: struct {
+				TotalCards int            `json:"totalCards"`
+				RankCounts map[string]int `json:"rankCounts"`
+			}{
+				TotalCards: s.TotalCards,
+				RankCounts: counts,
+			},
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -139,7 +152,7 @@ func parseDecision(dec string) (strategy.Decision, error) {
 	}
 }
 
-func isValidMove(playerHand *hand.Hand, dealerHand *hand.Hand, decision strategy.Decision) bool {
+func isValidMove(playerHand *hand.Hand, decision strategy.Decision) bool {
 	switch decision {
 	case strategy.Hit:
 		return !playerHand.IsBust() && playerHand.Value() < 21

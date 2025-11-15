@@ -5,7 +5,7 @@ export interface SessionResponse {
 export interface DealResponse {
   playerCards: string[];
   dealerCard: string;
-  deckState: { totalCards: number; rankCounts: Record<string, number> };
+  shoeState: { totalCards: number; rankCounts: Record<string, number> };
 }
 
 export interface MoveRequest {
@@ -19,7 +19,7 @@ export interface MoveResponse {
   completedHands: string[][];
   dealerCards: string[];
   outcomes: string[];
-  deckState: { totalCards: number; rankCounts: Record<string, number> };
+  shoeState: { totalCards: number; rankCounts: Record<string, number> };
 }
 
 export interface HintResponse {

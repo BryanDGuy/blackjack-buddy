@@ -35,4 +35,3 @@ func NewGameSession(session *Session) *GameSession {
 		Outcomes:       nil,
 	}
 }
-

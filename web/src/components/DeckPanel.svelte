@@ -1,14 +1,14 @@
 <script lang="ts">
-  export let deckState: { totalCards: number; rankCounts: Record<string, number> };
+  export let shoeState: { totalCards: number; rankCounts: Record<string, number> };
 </script>
 
 <div class="deck-wrap">
   <div class="deck-button">D</div>
   <div class="deck-panel">
-    <div class="section">Deck: {deckState.totalCards} cards</div>
+    <div class="section">Deck: {shoeState.totalCards} cards</div>
     <div class="deck-ranks">
       {#each (() => {
-        const entries = Object.entries(deckState.rankCounts || {});
+        const entries = Object.entries(shoeState.rankCounts || {});
         const order = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         return entries.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
       })() as [rank, count]}

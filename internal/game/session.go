@@ -1,7 +1,6 @@
 package game
 
 import (
-	"maps"
 	"math/rand"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/deck"
 	"github.com/bryan/blackjack-buddy/internal/hand"
 	"github.com/bryan/blackjack-buddy/internal/shoe"
+	"github.com/google/uuid"
 )
 
 const (
@@ -17,21 +17,21 @@ const (
 )
 
 type Session struct {
-	rng  *rand.Rand
-	shoe shoe.Shoe
+	ID   string
+	Shoe shoe.Shoe
 }
 
 func NewSession() *Session {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	shoe := freshSession(rng)
+	shoe := generateShuffledShoe()
 
 	return &Session{
-		rng:  rng,
-		shoe: shoe,
+		ID:   uuid.New().String(),
+		Shoe: shoe,
 	}
 }
 
-func freshSession(rng *rand.Rand) shoe.Shoe {
+func generateShuffledShoe() shoe.Shoe {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	decks := make([]deck.Deck, 0, decksInShoe)
 	for range decksInShoe {
 		d := deck.NewDeck(rng)
@@ -61,10 +61,10 @@ func (s *Session) GenerateDeal() Deal {
 }
 
 func (s *Session) DrawCard() card.Card {
-	if len(s.shoe.Cards) < reshuffleThreshold {
-		s.shoe = freshSession(s.rng)
+	if len(s.Shoe.Cards) < reshuffleThreshold {
+		s.Shoe = generateShuffledShoe()
 	}
-	return s.shoe.Draw()
+	return s.Shoe.Draw()
 }
 
 func (s *Session) FinishDealer(cards []card.Card) []card.Card {
@@ -109,18 +109,4 @@ func (s *Session) EvaluateAllHands(hands [][]card.Card, dealer card.Card) ([]car
 	}
 
 	return dealerCards, results
-}
-
-func (s *Session) GetDeckState() DeckState {
-	counts := make(map[string]int)
-	maps.Copy(counts, s.shoe.RankCounts)
-	return DeckState{
-		TotalCards: s.shoe.TotalCards,
-		RankCounts: counts,
-	}
-}
-
-type DeckState struct {
-	TotalCards int            `json:"totalCards"`
-	RankCounts map[string]int `json:"rankCounts"`
 }

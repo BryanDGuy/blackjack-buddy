@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"maps"
 	"net/http"
 	"strings"
 
@@ -44,14 +45,27 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 		gameSession.Outcomes = nil
 		gameSession.RoundState = game.RoundStateActive
 
+		s := gameSession.Session.Shoe
+		counts := make(map[string]int)
+		maps.Copy(counts, s.RankCounts)
+
 		resp := struct {
-			PlayerCards []string       `json:"playerCards"`
-			DealerCard  string         `json:"dealerCard"`
-			DeckState   game.DeckState `json:"deckState"`
+			PlayerCards []string `json:"playerCards"`
+			DealerCard  string   `json:"dealerCard"`
+			ShoeState   struct {
+				TotalCards int            `json:"totalCards"`
+				RankCounts map[string]int `json:"rankCounts"`
+			} `json:"shoeState"`
 		}{
 			PlayerCards: helpers.CardsToStrings(deal.Player),
 			DealerCard:  deal.Dealer.ToString(),
-			DeckState:   gameSession.Session.GetDeckState(),
+			ShoeState: struct {
+				TotalCards int            `json:"totalCards"`
+				RankCounts map[string]int `json:"rankCounts"`
+			}{
+				TotalCards: s.TotalCards,
+				RankCounts: counts,
+			},
 		}
 
 		w.Header().Set("Content-Type", "application/json")
