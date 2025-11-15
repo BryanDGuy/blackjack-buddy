@@ -38,6 +38,7 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 		deal := gameSession.Session.GenerateDeal()
 		gameSession.ActiveHand = deal.Player
 		gameSession.InactiveHands = nil
+		gameSession.CompletedHands = nil
 		gameSession.DealerCard = deal.Dealer
 		gameSession.DealerCards = nil
 		gameSession.Outcomes = nil

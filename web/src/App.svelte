@@ -10,6 +10,7 @@
   let dealerCard = '';
   let dealerCards: string[] = [];
   let inactiveHands: string[][] = [];
+  let completedHands: string[][] = [];
   let correct = 0;
   let total = 0;
   let deckState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
@@ -55,6 +56,7 @@
       dealerCard = data.dealerCard;
       dealerCards = dealerCard ? [dealerCard] : [];
       inactiveHands = [];
+      completedHands = [];
       outcomes = [];
       roundState = 'active';
       deckState = data.deckState;
@@ -88,6 +90,7 @@
       roundState = result.roundState;
       playerCards = result.activeHand;
       inactiveHands = result.inactiveHands;
+      completedHands = result.completedHands || [];
       outcomes = result.outcomes;
       deckState = result.deckState;
 
@@ -188,9 +191,15 @@
     <div class="section">
       <div class="label">Your Cards</div>
       <div class="cards">
-        {#each playerCards as card, index}
-          <div class="card" data-index={index}>{card}</div>
-        {/each}
+        {#if playerCards.length > 0}
+          {#each playerCards as card, index}
+            <div class="card" data-index={index}>{card}</div>
+          {/each}
+        {:else if roundState === 'complete' && completedHands.length === 1}
+          {#each completedHands[0] as card, index}
+            <div class="card" data-index={index}>{card}</div>
+          {/each}
+        {/if}
       </div>
     </div>
     {#if inactiveHands.length > 0}

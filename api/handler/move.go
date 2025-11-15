@@ -64,16 +64,11 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		completedHands := make([][]card.Card, 0)
-		for range gameSession.Outcomes {
-			completedHands = append(completedHands, []card.Card{})
-		}
-
 		roundState := game.NewRoundState(
 			gameSession.ActiveHand,
 			gameSession.DealerCard,
 			gameSession.InactiveHands,
-			completedHands,
+			gameSession.CompletedHands,
 			gameSession.Outcomes,
 		)
 
@@ -87,36 +82,41 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		gameSession.ActiveHand = resolution.State.Player
 		gameSession.InactiveHands = resolution.State.Queue
+		gameSession.CompletedHands = resolution.State.Completed
 		gameSession.Outcomes = resolution.State.Outcomes
 
 		if resolution.RoundComplete {
 			if len(resolution.State.Queue) == 0 {
+				gameSession.ActiveHand = nil
 				gameSession.DealerCards = resolution.DealerCards
 				gameSession.Outcomes = resolution.State.Outcomes
 				gameSession.RoundState = game.RoundStateComplete
 			} else {
+				gameSession.ActiveHand = resolution.State.Player
 				gameSession.RoundState = game.RoundStateActive
 			}
 		} else {
+			gameSession.ActiveHand = resolution.State.Player
 			gameSession.RoundState = game.RoundStateActive
 		}
 
 		resp := struct {
-			RoundState    string       `json:"roundState"`
-			ActiveHand    []string     `json:"activeHand"`
-			InactiveHands [][]string   `json:"inactiveHands"`
-			DealerCards   []string     `json:"dealerCards"`
-			Outcomes      []string     `json:"outcomes"`
-			DeckState     game.DeckState `json:"deckState"`
+			RoundState     string         `json:"roundState"`
+			ActiveHand     []string       `json:"activeHand"`
+			InactiveHands  [][]string     `json:"inactiveHands"`
+			CompletedHands [][]string     `json:"completedHands"`
+			DealerCards    []string       `json:"dealerCards"`
+			Outcomes       []string       `json:"outcomes"`
+			DeckState      game.DeckState `json:"deckState"`
 		}{
-			RoundState:    string(gameSession.RoundState),
-			ActiveHand:    helpers.CardsToStrings(gameSession.ActiveHand),
-			InactiveHands: helpers.HandsToStrings(gameSession.InactiveHands),
-			DealerCards:   helpers.CardsToStrings(gameSession.DealerCards),
-			Outcomes:      gameSession.Outcomes,
-			DeckState:     gameSession.Session.GetDeckState(),
+			RoundState:     string(gameSession.RoundState),
+			ActiveHand:     helpers.CardsToStrings(gameSession.ActiveHand),
+			InactiveHands:  helpers.HandsToStrings(gameSession.InactiveHands),
+			CompletedHands: helpers.HandsToStrings(gameSession.CompletedHands),
+			DealerCards:    helpers.CardsToStrings(gameSession.DealerCards),
+			Outcomes:       gameSession.Outcomes,
+			DeckState:      gameSession.Session.GetDeckState(),
 		}
 
 		w.Header().Set("Content-Type", "application/json")
