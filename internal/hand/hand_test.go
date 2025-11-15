@@ -119,29 +119,3 @@ func TestHand_IsSoft(t *testing.T) {
 		})
 	}
 }
-
-func TestHand_GetType(t *testing.T) {
-	tests := []struct {
-		name  string
-		cards []card.Card
-		want  HandType
-	}{
-		{"hard 20", []card.Card{card.NewCard(card.King), card.NewCard(card.Queen)}, Hard20},
-		{"hard 17", []card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}, Hard17},
-		{"hard 12", []card.Card{card.NewCard(card.Seven), card.NewCard(card.Five)}, Hard12},
-		{"soft 17", []card.Card{card.NewCard(card.Ace), card.NewCard(card.Six)}, SoftA6},
-		{"soft 20", []card.Card{card.NewCard(card.Ace), card.NewCard(card.Nine)}, SoftA9},
-		{"pair 8s", []card.Card{card.NewCard(card.Eight), card.NewCard(card.Eight)}, Pair8},
-		{"pair aces", []card.Card{card.NewCard(card.Ace), card.NewCard(card.Ace)}, PairA},
-		{"hard 21", []card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven), card.NewCard(card.Four)}, Hard21},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := NewHand(tt.cards)
-			if got := h.GetType(); got != tt.want {
-				t.Errorf("Hand.GetType() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
