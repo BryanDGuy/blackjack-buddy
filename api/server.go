@@ -75,5 +75,6 @@ func (s *server) Start(port int) error {
 		Handler: mux,
 	}
 
+	fmt.Printf("Server running on http://localhost%s\n", addr)
 	return srv.ListenAndServe()
 }
