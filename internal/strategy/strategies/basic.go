@@ -48,7 +48,7 @@ var decisionMatrix = [hand.Pair2 + 1][]strategy.Decision{
 }
 
 func GetDealerCardIndex(dealerCard card.Card) int {
-	switch dealerCard.Rank {
+	switch dealerCard.Rank() {
 	case card.Ace:
 		return 0
 	case card.Ten, card.Jack, card.Queen, card.King:

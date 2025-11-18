@@ -1,15 +1,19 @@
 package card
 
 type Card struct {
-	Rank Rank
+	rank Rank
 }
 
 func NewCard(rank Rank) Card {
-	return Card{Rank: rank}
+	return Card{rank: rank}
+}
+
+func (c Card) Rank() Rank {
+	return c.rank
 }
 
 func (c Card) Value() int {
-	switch c.Rank {
+	switch c.Rank() {
 	case Two:
 		return 2
 	case Three:
@@ -36,7 +40,7 @@ func (c Card) Value() int {
 }
 
 func (c Card) ToString() string {
-	switch c.Rank {
+	switch c.Rank() {
 	case Two:
 		return "2"
 	case Three:

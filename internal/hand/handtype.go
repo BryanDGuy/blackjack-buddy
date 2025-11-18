@@ -50,7 +50,7 @@ const (
 func (h *Hand) GetType() HandType {
 	if h.CanSplit() {
 		pairCard := h.Cards[0]
-		switch pairCard.Rank {
+		switch pairCard.Rank() {
 		case card.Ace:
 			return PairA
 		case card.Ten, card.Jack, card.Queen, card.King:

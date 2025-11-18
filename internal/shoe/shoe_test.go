@@ -107,7 +107,7 @@ func TestShoe_Shuffle_ChangesOrder(t *testing.T) {
 
 	allSame := true
 	for i := range s1.Cards {
-		if s1.Cards[i].Rank != s2.Cards[i].Rank {
+		if s1.Cards[i].Rank() != s2.Cards[i].Rank() {
 			allSame = false
 			break
 		}

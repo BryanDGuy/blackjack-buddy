@@ -17,7 +17,7 @@ func TestNewDeck(t *testing.T) {
 
 	rankCounts := make(map[card.Rank]int)
 	for _, c := range d.Cards {
-		rankCounts[c.Rank]++
+		rankCounts[c.Rank()]++
 	}
 
 	expectedRanks := []card.Rank{
@@ -55,10 +55,10 @@ func TestDeck_Shuffle(t *testing.T) {
 	rankCounts2 := make(map[card.Rank]int)
 
 	for _, c := range d1.Cards {
-		rankCounts1[c.Rank]++
+		rankCounts1[c.Rank()]++
 	}
 	for _, c := range d2.Cards {
-		rankCounts2[c.Rank]++
+		rankCounts2[c.Rank()]++
 	}
 
 	for rank, count := range rankCounts1 {
@@ -78,7 +78,7 @@ func TestDeck_Shuffle_ChangesOrder(t *testing.T) {
 
 	allSame := true
 	for i := range d1.Cards {
-		if d1.Cards[i].Rank != d2.Cards[i].Rank {
+		if d1.Cards[i].Rank() != d2.Cards[i].Rank() {
 			allSame = false
 			break
 		}

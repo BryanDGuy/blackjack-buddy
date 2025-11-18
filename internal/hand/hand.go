@@ -49,7 +49,7 @@ func (h *Hand) CanSplit() bool {
 		return false
 	}
 
-	return h.Cards[0].Rank == h.Cards[1].Rank
+	return h.Cards[0].Rank() == h.Cards[1].Rank()
 }
 
 func (h *Hand) Value() int {
@@ -59,7 +59,7 @@ func (h *Hand) Value() int {
 	for _, c := range h.Cards {
 		total += c.Value()
 
-		if c.Rank == card.Ace {
+		if c.Rank() == card.Ace {
 			aces++
 		}
 	}
@@ -81,7 +81,7 @@ func (h *Hand) IsSoft() bool {
 	aces := 0
 
 	for _, c := range h.Cards {
-		if c.Rank == card.Ace {
+		if c.Rank() == card.Ace {
 			aces++
 		} else {
 			totalWithoutAces += c.Value()
