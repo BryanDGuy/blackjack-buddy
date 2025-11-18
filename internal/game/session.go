@@ -43,21 +43,6 @@ func generateShuffledShoe() shoe.Shoe {
 	return s
 }
 
-type Deal struct {
-	Player []card.Card
-	Dealer card.Card
-}
-
-func (s *Session) GenerateDeal() Deal {
-	player := []card.Card{s.DrawCard(), s.DrawCard()}
-	dealer := s.DrawCard()
-
-	return Deal{
-		Player: player,
-		Dealer: dealer,
-	}
-}
-
 func (s *Session) DrawCard() card.Card {
 	if len(s.Shoe.Cards) < reshuffleThreshold {
 		s.Shoe = generateShuffledShoe()
