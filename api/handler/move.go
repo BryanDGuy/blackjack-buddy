@@ -95,7 +95,8 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			if len(session.Player.InactiveHands) == 0 {
 				if session.Dealer != nil {
 					session.Dealer.Finish(session)
-					session.Player.Finalize(session.Dealer)
+					outcomes := session.DetermineOutcome()
+					session.UpdateOutcomes(outcomes)
 				}
 				session.RoundState = game.RoundStateComplete
 			} else {
@@ -123,13 +124,11 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		}
 
 		var completedHands [][]string
-		var outcomes []string
 		if session.Player != nil {
 			completedHands = make([][]string, len(session.Player.CompletedHands))
 			for i, h := range session.Player.CompletedHands {
 				completedHands[i] = helpers.CardsToStrings(h.Cards)
 			}
-			outcomes = session.Player.Outcomes
 		}
 
 		var dealerCards []string
@@ -154,7 +153,7 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			InactiveHands:  inactiveHands,
 			CompletedHands: completedHands,
 			DealerCards:    dealerCards,
-			Outcomes:       outcomes,
+			Outcomes:       session.Outcomes,
 			ShoeState: struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`

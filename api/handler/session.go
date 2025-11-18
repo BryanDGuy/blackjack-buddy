@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/bryan/blackjack-buddy/api/store"
+	"github.com/bryan/blackjack-buddy/internal/dealer"
 	"github.com/bryan/blackjack-buddy/internal/game"
 )
 
@@ -15,7 +16,7 @@ func NewSession(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		session := game.NewSession(game.NewPlayer(nil), game.NewDealer(nil))
+		session := game.NewSession(game.NewPlayer(), dealer.NewDealer())
 
 		sessionID := store.Create(session)
 

@@ -2,8 +2,6 @@ package game
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/hand"
@@ -17,7 +15,6 @@ type Player struct {
 	ActiveHand     *hand.Hand
 	InactiveHands  []*hand.Hand
 	CompletedHands []*hand.Hand
-	Outcomes       []string
 }
 
 type PlayerMoveResult struct {
@@ -25,12 +22,11 @@ type PlayerMoveResult struct {
 	Outcome       string
 }
 
-func NewPlayer(hand *hand.Hand) *Player {
+func NewPlayer() *Player {
 	return &Player{
-		ActiveHand:     hand,
+		ActiveHand:     nil,
 		InactiveHands:  nil,
 		CompletedHands: nil,
-		Outcomes:       nil,
 	}
 }
 
@@ -45,13 +41,13 @@ func (p *Player) Hit(session *Session) (PlayerMoveResult, error) {
 	if p.ActiveHand.IsBust() {
 		result.Outcome = "Bust"
 		result.RoundComplete = true
-		p.completeActiveHand(result.Outcome)
+		p.completeActiveHand(session, result.Outcome)
 		return p.finalizeOrAdvance(result)
 	}
 
 	if p.ActiveHand.Value() == 21 {
 		result.RoundComplete = true
-		p.completeActiveHand("")
+		p.completeActiveHand(session, "")
 		return p.finalizeOrAdvance(result)
 	}
 
@@ -64,7 +60,7 @@ func (p *Player) Stand(session *Session) (PlayerMoveResult, error) {
 	}
 
 	result := PlayerMoveResult{RoundComplete: true}
-	p.completeActiveHand("")
+	p.completeActiveHand(session, "")
 	return p.finalizeOrAdvance(result)
 }
 
@@ -80,7 +76,7 @@ func (p *Player) Double(session *Session) (PlayerMoveResult, error) {
 		result.Outcome = "Bust"
 	}
 
-	p.completeActiveHand(result.Outcome)
+	p.completeActiveHand(session, result.Outcome)
 	return p.finalizeOrAdvance(result)
 }
 
@@ -102,7 +98,7 @@ func (p *Player) Split(session *Session) (PlayerMoveResult, error) {
 	return PlayerMoveResult{RoundComplete: false}, nil
 }
 
-func (p *Player) completeActiveHand(outcome string) {
+func (p *Player) completeActiveHand(session *Session, outcome string) {
 	completed := hand.NewHand(p.ActiveHand.Cards)
 	p.CompletedHands = append(p.CompletedHands, completed)
 
@@ -112,7 +108,7 @@ func (p *Player) completeActiveHand(outcome string) {
 		}
 	}
 
-	p.Outcomes = append(p.Outcomes, outcome)
+	session.Outcomes = append(session.Outcomes, outcome)
 }
 
 func (p *Player) finalizeOrAdvance(result PlayerMoveResult) (PlayerMoveResult, error) {
@@ -125,42 +121,4 @@ func (p *Player) finalizeOrAdvance(result PlayerMoveResult) (PlayerMoveResult, e
 	}
 
 	return result, nil
-}
-
-func (p *Player) Finalize(dealer *Dealer) {
-	if len(p.CompletedHands) == 0 || dealer == nil {
-		return
-	}
-
-	outcomes := dealer.EvaluatePlayerHands(p.CompletedHands)
-	p.updateOutcomes(outcomes)
-}
-
-func (p *Player) updateOutcomes(newOutcomes []string) {
-	for i := range p.Outcomes {
-		if p.Outcomes[i] == "" && i < len(newOutcomes) {
-			p.Outcomes[i] = newOutcomes[i]
-		}
-	}
-
-	for i := len(p.Outcomes); i < len(newOutcomes); i++ {
-		p.Outcomes = append(p.Outcomes, newOutcomes[i])
-	}
-}
-
-func (p *Player) FormatOutcomes() string {
-	if len(p.Outcomes) == 0 {
-		return ""
-	}
-
-	parts := make([]string, 0, len(p.Outcomes))
-	for i, outcome := range p.Outcomes {
-		label := outcome
-		if label == "" {
-			label = "Pending"
-		}
-		parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
-	}
-
-	return strings.Join(parts, " | ")
 }

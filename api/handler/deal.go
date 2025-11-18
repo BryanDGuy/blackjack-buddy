@@ -38,14 +38,8 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		dealerCard := session.DrawCard()
-
-		playerHand := hand.NewHand([]card.Card{session.DrawCard(), session.DrawCard()})
-		session.Player = game.NewPlayer(playerHand)
-
-		dealerHand := hand.NewHand([]card.Card{dealerCard})
-		session.Dealer = game.NewDealer(dealerHand)
-
+		session.Player.ActiveHand = hand.NewHand([]card.Card{session.DrawCard(), session.DrawCard()})
+		session.Dealer.Hand = hand.NewHand([]card.Card{session.DrawCard()})
 		session.RoundState = game.RoundStateActive
 
 		s := session.Shoe
@@ -60,8 +54,8 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 				RankCounts map[string]int `json:"rankCounts"`
 			} `json:"shoeState"`
 		}{
-			PlayerCards: helpers.CardsToStrings(playerHand.Cards),
-			DealerCard:  dealerCard.ToString(),
+			PlayerCards: helpers.CardsToStrings(session.Player.ActiveHand.Cards),
+			DealerCard:  session.Dealer.Hand.Cards[0].ToString(),
 			ShoeState: struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`
