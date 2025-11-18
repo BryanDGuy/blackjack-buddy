@@ -40,12 +40,12 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		if session.RoundState != game.RoundStateActive {
+		if session.RoundState() != game.RoundStateActive {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 			return
 		}
 
-		if session.Player == nil || session.Player.ActiveHand == nil {
+		if session.Player() == nil || session.Player().ActiveHand() == nil {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
 			return
 		}
@@ -62,20 +62,20 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		if !isValidMove(session.Player.ActiveHand, decision) {
+		if !isValidMove(session.Player().ActiveHand(), decision) {
 			writeError(w, http.StatusBadRequest, "INVALID_MOVE", "Move is not valid for current hand state")
 			return
 		}
 
 		switch decision {
 		case strategy.Hit:
-			err = session.Player.Hit(session)
+			err = session.Player().Hit(session)
 		case strategy.Stand:
-			err = session.Player.Stand(session)
+			err = session.Player().Stand(session)
 		case strategy.DoubleDown:
-			err = session.Player.Double(session)
+			err = session.Player().Double(session)
 		case strategy.Split:
-			err = session.Player.Split(session)
+			err = session.Player().Split(session)
 		default:
 			writeError(w, http.StatusBadRequest, "INVALID_MOVE", "Unsupported move")
 			return
@@ -90,49 +90,53 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		if !session.Player.CanMove() {
-			if len(session.Player.InactiveHands) == 0 {
-				if session.Dealer != nil {
-					session.Dealer.Finish(session)
+		if !session.Player().CanMove() {
+			if len(session.Player().InactiveHands()) == 0 {
+				if session.Dealer() != nil && session.Dealer().Hand() != nil && session.Dealer().Hand().Count() > 0 {
+					for session.Dealer().Hand().Value() < 17 {
+						session.Dealer().Hand().AddCard(session.DrawCard())
+					}
 					outcomes := session.DetermineOutcome()
 					session.UpdateOutcomes(outcomes)
 				}
-				session.RoundState = game.RoundStateComplete
+				session.SetRoundState(game.RoundStateComplete)
 			} else {
-				session.RoundState = game.RoundStateActive
+				session.SetRoundState(game.RoundStateActive)
 			}
 		} else {
-			session.RoundState = game.RoundStateActive
+			session.SetRoundState(game.RoundStateActive)
 		}
 
-		s := session.Shoe
+		s := session.Shoe()
 		counts := make(map[string]int)
-		maps.Copy(counts, s.RankCounts)
+		maps.Copy(counts, s.RankCounts())
 
 		var activeHand []string
-		if session.Player != nil && session.Player.ActiveHand != nil {
-			activeHand = helpers.CardsToStrings(session.Player.ActiveHand.Cards)
+		if session.Player() != nil && session.Player().ActiveHand() != nil {
+			activeHand = helpers.CardsToStrings(session.Player().ActiveHand().Cards())
 		}
 
 		var inactiveHands [][]string
-		if session.Player != nil {
-			inactiveHands = make([][]string, len(session.Player.InactiveHands))
-			for i, h := range session.Player.InactiveHands {
-				inactiveHands[i] = helpers.CardsToStrings(h.Cards)
+		if session.Player() != nil {
+			inactiveHandsList := session.Player().InactiveHands()
+			inactiveHands = make([][]string, len(inactiveHandsList))
+			for i, h := range inactiveHandsList {
+				inactiveHands[i] = helpers.CardsToStrings(h.Cards())
 			}
 		}
 
 		var completedHands [][]string
-		if session.Player != nil {
-			completedHands = make([][]string, len(session.Player.CompletedHands))
-			for i, h := range session.Player.CompletedHands {
-				completedHands[i] = helpers.CardsToStrings(h.Cards)
+		if session.Player() != nil {
+			completedHandsList := session.Player().CompletedHands()
+			completedHands = make([][]string, len(completedHandsList))
+			for i, h := range completedHandsList {
+				completedHands[i] = helpers.CardsToStrings(h.Cards())
 			}
 		}
 
 		var dealerCards []string
-		if session.Dealer != nil && session.Dealer.Hand != nil {
-			dealerCards = helpers.CardsToStrings(session.Dealer.Hand.Cards)
+		if session.Dealer() != nil && session.Dealer().Hand() != nil {
+			dealerCards = helpers.CardsToStrings(session.Dealer().Hand().Cards())
 		}
 
 		resp := struct {
@@ -147,17 +151,17 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 				RankCounts map[string]int `json:"rankCounts"`
 			} `json:"shoeState"`
 		}{
-			RoundState:     string(session.RoundState),
+			RoundState:     string(session.RoundState()),
 			ActiveHand:     activeHand,
 			InactiveHands:  inactiveHands,
 			CompletedHands: completedHands,
 			DealerCards:    dealerCards,
-			Outcomes:       session.Outcomes,
+			Outcomes:       session.Outcomes(),
 			ShoeState: struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`
 			}{
-				TotalCards: s.TotalCards,
+				TotalCards: s.TotalCards(),
 				RankCounts: counts,
 			},
 		}
@@ -189,7 +193,7 @@ func isValidMove(playerHand *hand.Hand, decision strategy.Decision) bool {
 	case strategy.Stand:
 		return !playerHand.IsBust()
 	case strategy.DoubleDown:
-		return len(playerHand.Cards) == 2 && !playerHand.IsBust()
+		return playerHand.Count() == 2 && !playerHand.IsBust()
 	case strategy.Split:
 		return playerHand.CanSplit()
 	default:

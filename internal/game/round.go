@@ -152,15 +152,17 @@ func advanceQueue(res RoundResolution) RoundResolution {
 }
 
 func settleDealer(res RoundResolution, session *Session) RoundResolution {
-	if session.Dealer != nil {
-		session.Dealer.Finish(session)
+	if session.Dealer() != nil && session.Dealer().Hand() != nil && session.Dealer().Hand().Count() > 0 {
+		for session.Dealer().Hand().Value() < 17 {
+			session.Dealer().Hand().AddCard(session.DrawCard())
+		}
 	}
 
 	outcomes := session.DetermineOutcome()
 
 	var dealerCards []card.Card
-	if session.Dealer != nil && session.Dealer.Hand != nil {
-		dealerCards = session.Dealer.Hand.Cards
+	if session.Dealer() != nil && session.Dealer().Hand() != nil {
+		dealerCards = session.Dealer().Hand().Cards()
 	}
 	res.DealerCards = dealerCards
 

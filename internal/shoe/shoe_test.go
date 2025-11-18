@@ -19,27 +19,28 @@ func TestNewShoe(t *testing.T) {
 	s := NewShoe(decks)
 
 	expectedCards := 2 * 52
-	if s.TotalCards != expectedCards {
-		t.Errorf("NewShoe() TotalCards = %d, want %d", s.TotalCards, expectedCards)
+	if s.TotalCards() != expectedCards {
+		t.Errorf("NewShoe() TotalCards = %d, want %d", s.TotalCards(), expectedCards)
 	}
 
-	if len(s.Cards) != expectedCards {
-		t.Errorf("NewShoe() Cards length = %d, want %d", len(s.Cards), expectedCards)
+	if len(s.Cards()) != expectedCards {
+		t.Errorf("NewShoe() Cards length = %d, want %d", len(s.Cards()), expectedCards)
 	}
 
 	rankCounts := make(map[string]int)
-	for _, c := range s.Cards {
+	for _, c := range s.Cards() {
 		rankStr := c.ToString()
 		rankCounts[rankStr]++
 	}
 
+	shoeRankCounts := s.RankCounts()
 	for rank, count := range rankCounts {
-		if s.RankCounts[rank] != count {
-			t.Errorf("NewShoe() RankCounts[%s] = %d, want %d", rank, s.RankCounts[rank], count)
+		if shoeRankCounts[rank] != count {
+			t.Errorf("NewShoe() RankCounts[%s] = %d, want %d", rank, shoeRankCounts[rank], count)
 		}
 	}
 
-	for rank, count := range s.RankCounts {
+	for rank, count := range shoeRankCounts {
 		if rankCounts[rank] != count {
 			t.Errorf("NewShoe() RankCounts[%s] = %d, but actual count is %d", rank, count, rankCounts[rank])
 		}
@@ -68,20 +69,20 @@ func TestShoe_Shuffle(t *testing.T) {
 	s1.Shuffle(rng1)
 	s2.Shuffle(rng2)
 
-	if s1.TotalCards != 52 || s2.TotalCards != 52 {
+	if s1.TotalCards() != 52 || s2.TotalCards() != 52 {
 		t.Errorf("Shuffle() changed TotalCards")
 	}
 
-	if len(s1.Cards) != 52 || len(s2.Cards) != 52 {
+	if len(s1.Cards()) != 52 || len(s2.Cards()) != 52 {
 		t.Errorf("Shuffle() changed Cards length")
 	}
 
 	rankCounts1 := make(map[string]int)
 	rankCounts2 := make(map[string]int)
-	for _, c := range s1.Cards {
+	for _, c := range s1.Cards() {
 		rankCounts1[c.ToString()]++
 	}
-	for _, c := range s2.Cards {
+	for _, c := range s2.Cards() {
 		rankCounts2[c.ToString()]++
 	}
 
@@ -106,8 +107,10 @@ func TestShoe_Shuffle_ChangesOrder(t *testing.T) {
 	s2.Shuffle(rng)
 
 	allSame := true
-	for i := range s1.Cards {
-		if s1.Cards[i].Rank() != s2.Cards[i].Rank() {
+	cards1 := s1.Cards()
+	cards2 := s2.Cards()
+	for i := range cards1 {
+		if cards1[i].Rank() != cards2[i].Rank() {
 			allSame = false
 			break
 		}
@@ -126,32 +129,30 @@ func TestShoe_Draw(t *testing.T) {
 	decks = append(decks, d)
 
 	s := NewShoe(decks)
-	initialTotal := s.TotalCards
-	initialRankCounts := make(map[string]int)
-	for k, v := range s.RankCounts {
-		initialRankCounts[k] = v
-	}
+	initialTotal := s.TotalCards()
+	initialRankCounts := s.RankCounts()
 
 	card := s.Draw()
 
-	if s.TotalCards != initialTotal-1 {
-		t.Errorf("Draw() TotalCards = %d, want %d", s.TotalCards, initialTotal-1)
+	if s.TotalCards() != initialTotal-1 {
+		t.Errorf("Draw() TotalCards = %d, want %d", s.TotalCards(), initialTotal-1)
 	}
 
-	if len(s.Cards) != initialTotal-1 {
-		t.Errorf("Draw() Cards length = %d, want %d", len(s.Cards), initialTotal-1)
+	if len(s.Cards()) != initialTotal-1 {
+		t.Errorf("Draw() Cards length = %d, want %d", len(s.Cards()), initialTotal-1)
 	}
 
 	rankStr := card.ToString()
 	expectedCount := initialRankCounts[rankStr] - 1
-	if s.RankCounts[rankStr] != expectedCount {
-		t.Errorf("Draw() RankCounts[%s] = %d, want %d", rankStr, s.RankCounts[rankStr], expectedCount)
+	shoeRankCounts := s.RankCounts()
+	if shoeRankCounts[rankStr] != expectedCount {
+		t.Errorf("Draw() RankCounts[%s] = %d, want %d", rankStr, shoeRankCounts[rankStr], expectedCount)
 	}
 
 	for rank, count := range initialRankCounts {
 		if rank != rankStr {
-			if s.RankCounts[rank] != count {
-				t.Errorf("Draw() RankCounts[%s] = %d, want %d (should be unchanged)", rank, s.RankCounts[rank], count)
+			if shoeRankCounts[rank] != count {
+				t.Errorf("Draw() RankCounts[%s] = %d, want %d (should be unchanged)", rank, shoeRankCounts[rank], count)
 			}
 		}
 	}
@@ -165,27 +166,28 @@ func TestShoe_Draw_Multiple(t *testing.T) {
 	decks = append(decks, d)
 
 	s := NewShoe(decks)
-	initialTotal := s.TotalCards
+	initialTotal := s.TotalCards()
 
 	cardsDrawn := 10
 	for i := 0; i < cardsDrawn; i++ {
 		s.Draw()
 	}
 
-	if s.TotalCards != initialTotal-cardsDrawn {
-		t.Errorf("Draw() %d times: TotalCards = %d, want %d", cardsDrawn, s.TotalCards, initialTotal-cardsDrawn)
+	if s.TotalCards() != initialTotal-cardsDrawn {
+		t.Errorf("Draw() %d times: TotalCards = %d, want %d", cardsDrawn, s.TotalCards(), initialTotal-cardsDrawn)
 	}
 
-	if len(s.Cards) != initialTotal-cardsDrawn {
-		t.Errorf("Draw() %d times: Cards length = %d, want %d", cardsDrawn, len(s.Cards), initialTotal-cardsDrawn)
+	if len(s.Cards()) != initialTotal-cardsDrawn {
+		t.Errorf("Draw() %d times: Cards length = %d, want %d", cardsDrawn, len(s.Cards()), initialTotal-cardsDrawn)
 	}
 
 	actualCounts := make(map[string]int)
-	for _, c := range s.Cards {
+	for _, c := range s.Cards() {
 		actualCounts[c.ToString()]++
 	}
 
-	for rank, count := range s.RankCounts {
+	shoeRankCounts := s.RankCounts()
+	for rank, count := range shoeRankCounts {
 		if actualCounts[rank] != count {
 			t.Errorf("Draw() %d times: RankCounts[%s] = %d, but actual count is %d", cardsDrawn, rank, count, actualCounts[rank])
 		}

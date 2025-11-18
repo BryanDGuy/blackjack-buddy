@@ -1,34 +1,23 @@
 package dealer
 
 import (
-	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/hand"
 )
 
-type CardDrawer interface {
-	DrawCard() card.Card
-}
-
 type Dealer struct {
-	Hand *hand.Hand
+	hand *hand.Hand
 }
 
 func NewDealer() *Dealer {
 	return &Dealer{
-		Hand: nil,
+		hand: nil,
 	}
 }
 
-func (d *Dealer) Finish(drawer CardDrawer) {
-	if d.Hand == nil || len(d.Hand.Cards) == 0 {
-		return
-	}
+func (d *Dealer) Hand() *hand.Hand {
+	return d.hand
+}
 
-	if len(d.Hand.Cards) == 1 {
-		d.Hand.Cards = append(d.Hand.Cards, drawer.DrawCard())
-	}
-
-	for d.Hand.Value() < 17 {
-		d.Hand.Cards = append(d.Hand.Cards, drawer.DrawCard())
-	}
+func (d *Dealer) SetHand(h *hand.Hand) {
+	d.hand = h
 }

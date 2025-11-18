@@ -82,6 +82,6 @@ func NewBasic() *Basic {
 
 func (s *Basic) GetDecision(playerHand, dealerHand *hand.Hand) strategy.Decision {
 	playerHandType := playerHand.GetType()
-	dealerIdx := GetDealerCardIndex(dealerHand.Cards[0])
+	dealerIdx := GetDealerCardIndex(dealerHand.GetCard(0))
 	return decisionMatrix[playerHandType][dealerIdx]
 }

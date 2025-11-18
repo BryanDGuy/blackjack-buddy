@@ -30,23 +30,23 @@ func NewHint(store *store.SessionStore, advisor *strategy.Advisor) http.HandlerF
 			return
 		}
 
-		if session.RoundState != game.RoundStateActive {
+		if session.RoundState() != game.RoundStateActive {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 			return
 		}
 
-		if session.Player == nil || session.Player.ActiveHand == nil {
+		if session.Player() == nil || session.Player().ActiveHand() == nil {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
 			return
 		}
 
-		if session.Dealer == nil || session.Dealer.Hand == nil {
+		if session.Dealer() == nil || session.Dealer().Hand() == nil {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No dealer hand")
 			return
 		}
 
-		playerHand := session.Player.ActiveHand
-		dealerHand := session.Dealer.Hand
+		playerHand := session.Player().ActiveHand()
+		dealerHand := session.Dealer().Hand()
 
 		decision, err := advisor.MakeDecision(playerHand, dealerHand)
 		if err != nil {

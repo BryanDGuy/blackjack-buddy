@@ -8,15 +8,15 @@ import (
 )
 
 type Shoe struct {
-	Cards      []card.Card
-	TotalCards int
-	RankCounts map[string]int
+	cards      []card.Card
+	totalCards int
+	rankCounts map[string]int
 }
 
 func NewShoe(decks []deck.Deck) Shoe {
 	cards := make([]card.Card, 0)
 	for _, d := range decks {
-		cards = append(cards, d.Cards...)
+		cards = append(cards, d.Cards()...)
 	}
 
 	counts := make(map[string]int)
@@ -26,25 +26,43 @@ func NewShoe(decks []deck.Deck) Shoe {
 	}
 
 	return Shoe{
-		Cards:      cards,
-		TotalCards: len(cards),
-		RankCounts: counts,
+		cards:      cards,
+		totalCards: len(cards),
+		rankCounts: counts,
 	}
 }
 
+func (s *Shoe) Cards() []card.Card {
+	c := make([]card.Card, len(s.cards))
+	copy(c, s.cards)
+	return c
+}
+
+func (s *Shoe) TotalCards() int {
+	return s.totalCards
+}
+
+func (s *Shoe) RankCounts() map[string]int {
+	counts := make(map[string]int)
+	for k, v := range s.rankCounts {
+		counts[k] = v
+	}
+	return counts
+}
+
 func (s *Shoe) Shuffle(rng *rand.Rand) {
-	rng.Shuffle(len(s.Cards), func(i, j int) {
-		s.Cards[i], s.Cards[j] = s.Cards[j], s.Cards[i]
+	rng.Shuffle(len(s.cards), func(i, j int) {
+		s.cards[i], s.cards[j] = s.cards[j], s.cards[i]
 	})
 }
 
 func (s *Shoe) Draw() card.Card {
-	card := s.Cards[0]
-	s.Cards = s.Cards[1:]
+	card := s.cards[0]
+	s.cards = s.cards[1:]
 
 	rankStr := card.ToString()
-	s.RankCounts[rankStr]--
-	s.TotalCards--
+	s.rankCounts[rankStr]--
+	s.totalCards--
 
 	return card
 }

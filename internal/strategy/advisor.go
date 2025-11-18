@@ -63,7 +63,7 @@ func (a *Advisor) MakeDecision(playerHand, dealerHand *hand.Hand) (Decision, err
 
 	decision := a.strategy.GetDecision(playerHand, dealerHand)
 
-	if decision == DoubleDown && len(playerHand.Cards) > 2 {
+	if decision == DoubleDown && playerHand.Count() > 2 {
 		decision = Hit
 	}
 

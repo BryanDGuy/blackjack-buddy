@@ -91,23 +91,70 @@ func ParseOutcome(s string) Outcome {
 }
 
 type Session struct {
-	ID         string
-	Shoe       shoe.Shoe
-	RoundState RoundStateType
-	Player     *Player
-	Dealer     *dealer.Dealer
-	Outcomes   []Outcome
+	id         string
+	shoe       shoe.Shoe
+	roundState RoundStateType
+	player     *Player
+	dealer     *dealer.Dealer
+	outcomes   []Outcome
 }
 
 func NewSession(player *Player, dealer *dealer.Dealer) *Session {
 	return &Session{
-		ID:         uuid.New().String(),
-		Shoe:       generateShuffledShoe(),
-		RoundState: RoundStateNone,
-		Player:     player,
-		Dealer:     dealer,
-		Outcomes:   nil,
+		id:         uuid.New().String(),
+		shoe:       generateShuffledShoe(),
+		roundState: RoundStateNone,
+		player:     player,
+		dealer:     dealer,
+		outcomes:   nil,
 	}
+}
+
+func (s *Session) Player() *Player {
+	return s.player
+}
+
+func (s *Session) SetPlayer(p *Player) {
+	s.player = p
+}
+
+func (s *Session) Dealer() *dealer.Dealer {
+	return s.dealer
+}
+
+func (s *Session) SetDealer(d *dealer.Dealer) {
+	s.dealer = d
+}
+
+func (s *Session) ID() string {
+	return s.id
+}
+
+func (s *Session) Shoe() shoe.Shoe {
+	return s.shoe
+}
+
+func (s *Session) SetShoe(sh shoe.Shoe) {
+	s.shoe = sh
+}
+
+func (s *Session) RoundState() RoundStateType {
+	return s.roundState
+}
+
+func (s *Session) SetRoundState(state RoundStateType) {
+	s.roundState = state
+}
+
+func (s *Session) Outcomes() []Outcome {
+	outcomes := make([]Outcome, len(s.outcomes))
+	copy(outcomes, s.outcomes)
+	return outcomes
+}
+
+func (s *Session) SetOutcomes(outcomes []Outcome) {
+	s.outcomes = make([]Outcome, len(outcomes))
+	copy(s.outcomes, outcomes)
 }
 
 func generateShuffledShoe() shoe.Shoe {
@@ -126,34 +173,35 @@ func generateShuffledShoe() shoe.Shoe {
 }
 
 func (s *Session) DrawCard() card.Card {
-	if len(s.Shoe.Cards) < reshuffleThreshold {
-		s.Shoe = generateShuffledShoe()
+	if len(s.shoe.Cards()) < reshuffleThreshold {
+		s.shoe = generateShuffledShoe()
 	}
-	return s.Shoe.Draw()
+	return s.shoe.Draw()
 }
 
 func (s *Session) DetermineOutcome() []Outcome {
-	if s.Dealer == nil || s.Player == nil || s.Dealer.Hand == nil {
+	if s.dealer == nil || s.player == nil || s.dealer.Hand() == nil {
 		return nil
 	}
 
-	results := make([]Outcome, len(s.Player.CompletedHands))
+	completedHands := s.player.CompletedHands()
+	results := make([]Outcome, len(completedHands))
 
-	for i, playerHand := range s.Player.CompletedHands {
+	for i, playerHand := range completedHands {
 		switch {
 		case playerHand.IsBust():
 			results[i] = OutcomeBust
-		case len(playerHand.Cards) == 2 && playerHand.Value() == 21:
-			if s.Dealer.Hand.IsBlackjack() {
+		case playerHand.Count() == 2 && playerHand.Value() == 21:
+			if s.dealer.Hand().IsBlackjack() {
 				results[i] = OutcomePush
 			} else {
 				results[i] = OutcomeBlackjack
 			}
-		case s.Dealer.Hand.IsBust():
+		case s.dealer.Hand().IsBust():
 			results[i] = OutcomeWin
-		case playerHand.Value() > s.Dealer.Hand.Value():
+		case playerHand.Value() > s.dealer.Hand().Value():
 			results[i] = OutcomeWin
-		case playerHand.Value() < s.Dealer.Hand.Value():
+		case playerHand.Value() < s.dealer.Hand().Value():
 			results[i] = OutcomeLose
 		default:
 			results[i] = OutcomePush
@@ -164,24 +212,24 @@ func (s *Session) DetermineOutcome() []Outcome {
 }
 
 func (s *Session) UpdateOutcomes(newOutcomes []Outcome) {
-	for i := range s.Outcomes {
-		if s.Outcomes[i] == OutcomeNone && i < len(newOutcomes) {
-			s.Outcomes[i] = newOutcomes[i]
+	for i := range s.outcomes {
+		if s.outcomes[i] == OutcomeNone && i < len(newOutcomes) {
+			s.outcomes[i] = newOutcomes[i]
 		}
 	}
 
-	for i := len(s.Outcomes); i < len(newOutcomes); i++ {
-		s.Outcomes = append(s.Outcomes, newOutcomes[i])
+	for i := len(s.outcomes); i < len(newOutcomes); i++ {
+		s.outcomes = append(s.outcomes, newOutcomes[i])
 	}
 }
 
 func (s *Session) FormatOutcomes() string {
-	if len(s.Outcomes) == 0 {
+	if len(s.outcomes) == 0 {
 		return ""
 	}
 
-	parts := make([]string, 0, len(s.Outcomes))
-	for i, outcome := range s.Outcomes {
+	parts := make([]string, 0, len(s.outcomes))
+	for i, outcome := range s.outcomes {
 		label := outcome.String()
 		if label == "" {
 			label = OutcomePending.String()
