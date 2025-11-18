@@ -15,7 +15,7 @@ func NewSession(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		session := game.NewSession(game.NewPlayer(), game.NewDealer())
+		session := game.NewSession(game.NewPlayer(nil), game.NewDealer(nil))
 
 		sessionID := store.Create(session)
 

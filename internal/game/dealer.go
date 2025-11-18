@@ -1,7 +1,6 @@
 package game
 
 import (
-	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/hand"
 )
 
@@ -9,9 +8,9 @@ type Dealer struct {
 	Hand *hand.Hand
 }
 
-func NewDealer() *Dealer {
+func NewDealer(hand *hand.Hand) *Dealer {
 	return &Dealer{
-		Hand: hand.NewHand([]card.Card{}),
+		Hand: hand,
 	}
 }
 

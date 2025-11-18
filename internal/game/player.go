@@ -25,9 +25,9 @@ type PlayerMoveResult struct {
 	Outcome       string
 }
 
-func NewPlayer() *Player {
+func NewPlayer(hand *hand.Hand) *Player {
 	return &Player{
-		ActiveHand:     hand.NewHand([]card.Card{}),
+		ActiveHand:     hand,
 		InactiveHands:  nil,
 		CompletedHands: nil,
 		Outcomes:       nil,
