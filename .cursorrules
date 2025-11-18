@@ -58,6 +58,29 @@
 7. If something can be null, fix the design that allows it rather than checking for it
 8. Question every conditional - can the design eliminate it?
 
+## Testing Requirements
+
+### Test Coverage Principles
+1. **Comprehensive Coverage**: All public functions and HTTP handlers must have tests
+2. **Edge Cases**: Test nil/empty values, boundary conditions, and error states
+3. **JSON Serialization**: For HTTP handlers, verify JSON responses never contain null arrays or objects when empty arrays/objects are expected
+4. **Round Trip**: Test that data structures serialize and deserialize correctly
+5. **Integration Points**: Test interactions between components, especially when data crosses boundaries (e.g., API responses)
+
+### When Adding Tests
+1. Test all public functions in a package
+2. For HTTP handlers, test JSON response structure and ensure arrays are never null
+3. Test edge cases: empty inputs, nil inputs, boundary values
+4. Test error conditions and error responses
+5. Use table-driven tests for multiple similar test cases
+6. Verify invariants: round completion, state transitions, data integrity
+
+### Test Anti-Patterns
+❌ Tests that only cover happy paths
+❌ Missing tests for nil/null handling in JSON responses
+❌ Skipping tests for edge cases
+❌ Tests that don't verify data structure integrity (e.g., null arrays in JSON)
+
 ## Anti-Patterns to Avoid
 ❌ Emojis anywhere in code or output
 ❌ Multi-line explanatory messages
@@ -71,4 +94,5 @@
 ❌ **Conditional checks for values that should be guaranteed** - redesign data flow
 ❌ **Optional/nullable types when values are always needed** - make them required
 ❌ **Conditionals that can be eliminated through better data flow** - pass all necessary data upfront
+❌ **Null arrays in JSON responses** - always use empty slices, never nil slices that serialize to null
 

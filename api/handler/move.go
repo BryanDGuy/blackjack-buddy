@@ -90,19 +90,17 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		if !session.Player().CanMove() {
-			if len(session.Player().InactiveHands()) == 0 {
-				if session.Dealer() != nil && session.Dealer().Hand() != nil && session.Dealer().Hand().Count() > 0 {
-					for session.Dealer().Hand().Value() < 17 {
-						session.Dealer().Hand().AddCard(session.DrawCard())
-					}
-					outcomes := session.DetermineOutcome()
-					session.UpdateOutcomes(outcomes)
+		roundComplete := !session.Player().CanMove() && len(session.Player().InactiveHands()) == 0
+
+		if roundComplete {
+			if session.Dealer() != nil && session.Dealer().Hand() != nil && session.Dealer().Hand().Count() > 0 {
+				for session.Dealer().Hand().Value() < 17 {
+					session.Dealer().Hand().AddCard(session.DrawCard())
 				}
-				session.SetRoundState(game.RoundStateComplete)
-			} else {
-				session.SetRoundState(game.RoundStateActive)
+				outcomes := session.DetermineOutcome()
+				session.UpdateOutcomes(outcomes)
 			}
+			session.SetRoundState(game.RoundStateComplete)
 		} else {
 			session.SetRoundState(game.RoundStateActive)
 		}
@@ -111,12 +109,12 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		counts := make(map[string]int)
 		maps.Copy(counts, s.RankCounts())
 
-		var activeHand []string
+		activeHand := []string{}
 		if session.Player() != nil && session.Player().ActiveHand() != nil {
 			activeHand = helpers.CardsToStrings(session.Player().ActiveHand().Cards())
 		}
 
-		var inactiveHands [][]string
+		inactiveHands := [][]string{}
 		if session.Player() != nil {
 			inactiveHandsList := session.Player().InactiveHands()
 			inactiveHands = make([][]string, len(inactiveHandsList))
@@ -125,7 +123,7 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			}
 		}
 
-		var completedHands [][]string
+		completedHands := [][]string{}
 		if session.Player() != nil {
 			completedHandsList := session.Player().CompletedHands()
 			completedHands = make([][]string, len(completedHandsList))
@@ -134,7 +132,7 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			}
 		}
 
-		var dealerCards []string
+		dealerCards := []string{}
 		if session.Dealer() != nil && session.Dealer().Hand() != nil {
 			dealerCards = helpers.CardsToStrings(session.Dealer().Hand().Cards())
 		}
@@ -167,6 +165,7 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(resp)
 	}
 }

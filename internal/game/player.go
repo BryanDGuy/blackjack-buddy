@@ -120,6 +120,8 @@ func (p *Player) completeAndAdvance() {
 	if len(p.inactiveHands) > 0 {
 		p.activeHand = hand.NewHand(p.inactiveHands[0].Cards())
 		p.inactiveHands = p.inactiveHands[1:]
+	} else {
+		p.activeHand = nil
 	}
 }
 
