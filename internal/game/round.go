@@ -10,8 +10,6 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-var ErrInvalidSplit = errors.New("invalid split")
-
 type RoundState struct {
 	Player    []card.Card
 	Dealer    card.Card

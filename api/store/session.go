@@ -8,24 +8,24 @@ import (
 
 type SessionStore struct {
 	mu       sync.RWMutex
-	sessions map[string]*game.GameSession
+	sessions map[string]*game.Session
 }
 
 func NewSessionStore() *SessionStore {
 	return &SessionStore{
-		sessions: make(map[string]*game.GameSession),
+		sessions: make(map[string]*game.Session),
 	}
 }
 
-func (s *SessionStore) Create(session *game.GameSession) string {
+func (s *SessionStore) Create(session *game.Session) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.sessions[session.Session.ID] = session
-	return session.Session.ID
+	s.sessions[session.ID] = session
+	return session.ID
 }
 
-func (s *SessionStore) Get(id string) (*game.GameSession, bool) {
+func (s *SessionStore) Get(id string) (*game.Session, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

@@ -16,15 +16,29 @@ const (
 	reshuffleThreshold = 78
 )
 
+type RoundStateType string
+
+const (
+	RoundStateNone     RoundStateType = "none"
+	RoundStateActive   RoundStateType = "active"
+	RoundStateComplete RoundStateType = "complete"
+)
+
 type Session struct {
-	ID   string
-	Shoe shoe.Shoe
+	ID         string
+	Shoe       shoe.Shoe
+	RoundState RoundStateType
+	Player     *Player
+	Dealer     *Dealer
 }
 
-func NewSession() *Session {
+func NewSession(player *Player, dealer *Dealer) *Session {
 	return &Session{
-		ID:   uuid.New().String(),
-		Shoe: generateShuffledShoe(),
+		ID:         uuid.New().String(),
+		Shoe:       generateShuffledShoe(),
+		RoundState: RoundStateNone,
+		Player:     player,
+		Dealer:     dealer,
 	}
 }
 

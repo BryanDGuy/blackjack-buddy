@@ -15,10 +15,9 @@ func NewSession(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		session := game.NewSession()
-		gameSession := game.NewGameSession(session)
+		session := game.NewSession(game.NewPlayer(), game.NewDealer())
 
-		sessionID := store.Create(gameSession)
+		sessionID := store.Create(session)
 
 		resp := struct {
 			SessionID string `json:"sessionId"`

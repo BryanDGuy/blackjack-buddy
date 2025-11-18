@@ -26,29 +26,29 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 		}
 
 		sessionID := pathParts[2]
-		gameSession, exists := store.Get(sessionID)
+		session, exists := store.Get(sessionID)
 		if !exists {
 			writeError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found")
 			return
 		}
 
-		if gameSession.RoundState == game.RoundStateActive {
+		if session.RoundState == game.RoundStateActive {
 			writeError(w, http.StatusConflict, "ROUND_ALREADY_ACTIVE", "Round is already active")
 			return
 		}
 
-		playerCards := []card.Card{gameSession.Session.DrawCard(), gameSession.Session.DrawCard()}
-		dealerCards := gameSession.Session.DrawCard()
+		playerCards := []card.Card{session.DrawCard(), session.DrawCard()}
+		dealerCard := session.DrawCard()
 
-		gameSession.ActiveHand = playerCards
-		gameSession.InactiveHands = nil
-		gameSession.CompletedHands = nil
-		gameSession.DealerCard = dealerCards
-		gameSession.DealerCards = nil
-		gameSession.Outcomes = nil
-		gameSession.RoundState = game.RoundStateActive
+		session.Player = game.NewPlayer()
+		session.Player.ActiveHand.Cards = playerCards
 
-		s := gameSession.Session.Shoe
+		session.Dealer = game.NewDealer()
+		session.Dealer.Hand.Cards = []card.Card{dealerCard}
+
+		session.RoundState = game.RoundStateActive
+
+		s := session.Shoe
 		counts := make(map[string]int)
 		maps.Copy(counts, s.RankCounts)
 
@@ -61,7 +61,7 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 			} `json:"shoeState"`
 		}{
 			PlayerCards: helpers.CardsToStrings(playerCards),
-			DealerCard:  dealerCards.ToString(),
+			DealerCard:  dealerCard.ToString(),
 			ShoeState: struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`

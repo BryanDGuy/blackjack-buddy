@@ -6,9 +6,7 @@ import (
 	"strings"
 
 	"github.com/bryan/blackjack-buddy/api/store"
-	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/game"
-	"github.com/bryan/blackjack-buddy/internal/hand"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
@@ -26,19 +24,29 @@ func NewHint(store *store.SessionStore, advisor *strategy.Advisor) http.HandlerF
 		}
 
 		sessionID := pathParts[2]
-		gameSession, exists := store.Get(sessionID)
+		session, exists := store.Get(sessionID)
 		if !exists {
 			writeError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found")
 			return
 		}
 
-		if gameSession.RoundState != game.RoundStateActive {
+		if session.RoundState != game.RoundStateActive {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 			return
 		}
 
-		playerHand := hand.NewHand(gameSession.ActiveHand)
-		dealerHand := hand.NewHand([]card.Card{gameSession.DealerCard})
+		if session.Player == nil || session.Player.ActiveHand == nil {
+			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
+			return
+		}
+
+		if session.Dealer == nil || session.Dealer.Hand == nil {
+			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No dealer hand")
+			return
+		}
+
+		playerHand := session.Player.ActiveHand
+		dealerHand := session.Dealer.Hand
 
 		decision, err := advisor.MakeDecision(playerHand, dealerHand)
 		if err != nil {
@@ -56,4 +64,3 @@ func NewHint(store *store.SessionStore, advisor *strategy.Advisor) http.HandlerF
 		json.NewEncoder(w).Encode(resp)
 	}
 }
-
