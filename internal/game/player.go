@@ -17,11 +17,6 @@ type Player struct {
 	CompletedHands []*hand.Hand
 }
 
-type PlayerMoveResult struct {
-	RoundComplete bool
-	Outcome       string
-}
-
 func NewPlayer() *Player {
 	return &Player{
 		ActiveHand:     nil,
@@ -30,63 +25,61 @@ func NewPlayer() *Player {
 	}
 }
 
-func (p *Player) Hit(session *Session) (PlayerMoveResult, error) {
+func (p *Player) Hit(session *Session) error {
 	if p.ActiveHand == nil || p.ActiveHand.IsEmpty() {
-		return PlayerMoveResult{}, ErrNoActiveHand
+		return ErrNoActiveHand
 	}
 
 	p.ActiveHand.Cards = append(p.ActiveHand.Cards, session.DrawCard())
 
-	result := PlayerMoveResult{}
 	if p.ActiveHand.IsBust() {
-		result.Outcome = "Bust"
-		result.RoundComplete = true
-		p.completeActiveHand(session, result.Outcome)
-		return p.finalizeOrAdvance(result)
+		p.completeActiveHand(session, OutcomeBust)
+		p.finalizeOrAdvance()
+		return nil
 	}
 
 	if p.ActiveHand.Value() == 21 {
-		result.RoundComplete = true
-		p.completeActiveHand(session, "")
-		return p.finalizeOrAdvance(result)
+		p.completeActiveHand(session, OutcomeNone)
+		p.finalizeOrAdvance()
+		return nil
 	}
 
-	return result, nil
+	return nil
 }
 
-func (p *Player) Stand(session *Session) (PlayerMoveResult, error) {
+func (p *Player) Stand(session *Session) error {
 	if p.ActiveHand == nil || p.ActiveHand.IsEmpty() {
-		return PlayerMoveResult{}, ErrNoActiveHand
+		return ErrNoActiveHand
 	}
 
-	result := PlayerMoveResult{RoundComplete: true}
-	p.completeActiveHand(session, "")
-	return p.finalizeOrAdvance(result)
+	p.completeActiveHand(session, OutcomeNone)
+	p.finalizeOrAdvance()
+	return nil
 }
 
-func (p *Player) Double(session *Session) (PlayerMoveResult, error) {
+func (p *Player) Double(session *Session) error {
 	if p.ActiveHand == nil || len(p.ActiveHand.Cards) != 2 {
-		return PlayerMoveResult{}, ErrInvalidMove
+		return ErrInvalidMove
 	}
 
 	p.ActiveHand.Cards = append(p.ActiveHand.Cards, session.DrawCard())
-	result := PlayerMoveResult{RoundComplete: true}
 
+	outcome := OutcomeNone
 	if p.ActiveHand.IsBust() {
-		result.Outcome = "Bust"
+		outcome = OutcomeBust
 	}
-
-	p.completeActiveHand(session, result.Outcome)
-	return p.finalizeOrAdvance(result)
+	p.completeActiveHand(session, outcome)
+	p.finalizeOrAdvance()
+	return nil
 }
 
-func (p *Player) Split(session *Session) (PlayerMoveResult, error) {
+func (p *Player) Split(session *Session) error {
 	if p.ActiveHand == nil || len(p.ActiveHand.Cards) != 2 {
-		return PlayerMoveResult{}, ErrInvalidMove
+		return ErrInvalidMove
 	}
 
 	if !p.ActiveHand.CanSplit() {
-		return PlayerMoveResult{}, ErrInvalidSplit
+		return ErrInvalidSplit
 	}
 
 	first := hand.NewHand([]card.Card{p.ActiveHand.Cards[0], session.DrawCard()})
@@ -95,30 +88,29 @@ func (p *Player) Split(session *Session) (PlayerMoveResult, error) {
 	p.ActiveHand = first
 	p.InactiveHands = append([]*hand.Hand{second}, p.InactiveHands...)
 
-	return PlayerMoveResult{RoundComplete: false}, nil
+	return nil
 }
 
-func (p *Player) completeActiveHand(session *Session, outcome string) {
+func (p *Player) completeActiveHand(session *Session, outcome Outcome) {
 	completed := hand.NewHand(p.ActiveHand.Cards)
 	p.CompletedHands = append(p.CompletedHands, completed)
 
-	if outcome == "" {
+	if outcome == OutcomeNone {
 		if completed.IsBust() {
-			outcome = "Bust"
+			outcome = OutcomeBust
 		}
 	}
 
 	session.Outcomes = append(session.Outcomes, outcome)
 }
 
-func (p *Player) finalizeOrAdvance(result PlayerMoveResult) (PlayerMoveResult, error) {
+func (p *Player) finalizeOrAdvance() {
 	if len(p.InactiveHands) > 0 {
 		p.ActiveHand = hand.NewHand(p.InactiveHands[0].Cards)
 		p.InactiveHands = p.InactiveHands[1:]
-		result.RoundComplete = false
-		result.Outcome = ""
-		return result, nil
 	}
+}
 
-	return result, nil
+func (p *Player) CanMove() bool {
+	return p.ActiveHand != nil && !p.ActiveHand.IsEmpty() && !p.ActiveHand.IsBust()
 }

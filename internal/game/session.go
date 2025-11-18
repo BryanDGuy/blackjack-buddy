@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -26,13 +27,76 @@ const (
 	RoundStateComplete RoundStateType = "complete"
 )
 
+type Outcome int
+
+const (
+	OutcomeNone Outcome = iota
+	OutcomeBust
+	OutcomeWin
+	OutcomeLose
+	OutcomePush
+	OutcomeBlackjack
+	OutcomePending
+)
+
+func (o Outcome) String() string {
+	switch o {
+	case OutcomeBust:
+		return "Bust"
+	case OutcomeWin:
+		return "Win"
+	case OutcomeLose:
+		return "Lose"
+	case OutcomePush:
+		return "Push"
+	case OutcomeBlackjack:
+		return "Blackjack"
+	case OutcomePending:
+		return "Pending"
+	default:
+		return ""
+	}
+}
+
+func (o Outcome) MarshalJSON() ([]byte, error) {
+	return json.Marshal(o.String())
+}
+
+func (o *Outcome) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	*o = ParseOutcome(s)
+	return nil
+}
+
+func ParseOutcome(s string) Outcome {
+	switch s {
+	case "Bust":
+		return OutcomeBust
+	case "Win":
+		return OutcomeWin
+	case "Lose":
+		return OutcomeLose
+	case "Push":
+		return OutcomePush
+	case "Blackjack":
+		return OutcomeBlackjack
+	case "Pending":
+		return OutcomePending
+	default:
+		return OutcomeNone
+	}
+}
+
 type Session struct {
 	ID         string
 	Shoe       shoe.Shoe
 	RoundState RoundStateType
 	Player     *Player
 	Dealer     *dealer.Dealer
-	Outcomes   []string
+	Outcomes   []Outcome
 }
 
 func NewSession(player *Player, dealer *dealer.Dealer) *Session {
@@ -68,40 +132,40 @@ func (s *Session) DrawCard() card.Card {
 	return s.Shoe.Draw()
 }
 
-func (s *Session) DetermineOutcome() []string {
+func (s *Session) DetermineOutcome() []Outcome {
 	if s.Dealer == nil || s.Player == nil || s.Dealer.Hand == nil {
 		return nil
 	}
 
-	results := make([]string, len(s.Player.CompletedHands))
+	results := make([]Outcome, len(s.Player.CompletedHands))
 
 	for i, playerHand := range s.Player.CompletedHands {
 		switch {
 		case playerHand.IsBust():
-			results[i] = "Bust"
+			results[i] = OutcomeBust
 		case len(playerHand.Cards) == 2 && playerHand.Value() == 21:
 			if s.Dealer.Hand.IsBlackjack() {
-				results[i] = "Push"
+				results[i] = OutcomePush
 			} else {
-				results[i] = "Blackjack"
+				results[i] = OutcomeBlackjack
 			}
 		case s.Dealer.Hand.IsBust():
-			results[i] = "Win"
+			results[i] = OutcomeWin
 		case playerHand.Value() > s.Dealer.Hand.Value():
-			results[i] = "Win"
+			results[i] = OutcomeWin
 		case playerHand.Value() < s.Dealer.Hand.Value():
-			results[i] = "Lose"
+			results[i] = OutcomeLose
 		default:
-			results[i] = "Push"
+			results[i] = OutcomePush
 		}
 	}
 
 	return results
 }
 
-func (s *Session) UpdateOutcomes(newOutcomes []string) {
+func (s *Session) UpdateOutcomes(newOutcomes []Outcome) {
 	for i := range s.Outcomes {
-		if s.Outcomes[i] == "" && i < len(newOutcomes) {
+		if s.Outcomes[i] == OutcomeNone && i < len(newOutcomes) {
 			s.Outcomes[i] = newOutcomes[i]
 		}
 	}
@@ -118,9 +182,9 @@ func (s *Session) FormatOutcomes() string {
 
 	parts := make([]string, 0, len(s.Outcomes))
 	for i, outcome := range s.Outcomes {
-		label := outcome
+		label := outcome.String()
 		if label == "" {
-			label = "Pending"
+			label = OutcomePending.String()
 		}
 		parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
 	}

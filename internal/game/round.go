@@ -15,7 +15,7 @@ type RoundState struct {
 	Dealer    card.Card
 	Queue     [][]card.Card
 	Completed [][]card.Card
-	Outcomes  []string
+	Outcomes  []Outcome
 }
 
 type RoundResolution struct {
@@ -25,13 +25,13 @@ type RoundResolution struct {
 	DealerCards   []card.Card
 }
 
-func NewRoundState(player []card.Card, dealer card.Card, queued [][]card.Card, completed [][]card.Card, outcomes []string) RoundState {
+func NewRoundState(player []card.Card, dealer card.Card, queued [][]card.Card, completed [][]card.Card, outcomes []Outcome) RoundState {
 	return RoundState{
 		Player:    cloneCards(player),
 		Dealer:    dealer,
 		Queue:     cloneHands(queued),
 		Completed: cloneHands(completed),
-		Outcomes:  append([]string{}, outcomes...),
+		Outcomes:  append([]Outcome{}, outcomes...),
 	}
 }
 
@@ -56,7 +56,7 @@ func applyHit(state RoundState, session *Session) RoundResolution {
 
 	playerHand := hand.NewHand(res.State.Player)
 	if playerHand.IsBust() {
-		res.Outcome = "Bust"
+		res.Outcome = OutcomeBust.String()
 		res.RoundComplete = true
 	} else if playerHand.Value() == 21 {
 		res.RoundComplete = true
@@ -71,7 +71,7 @@ func applyDouble(state RoundState, session *Session) RoundResolution {
 	res.RoundComplete = true
 
 	if hand.NewHand(res.State.Player).IsBust() {
-		res.Outcome = "Bust"
+		res.Outcome = OutcomeBust.String()
 	}
 
 	return finalize(res, session)
@@ -104,7 +104,8 @@ func finalize(res RoundResolution, session *Session) RoundResolution {
 		return res
 	}
 
-	res.State = appendCompleted(res.State, res.Outcome)
+	outcome := parseOutcomeFromString(res.Outcome)
+	res.State = appendCompleted(res.State, outcome)
 
 	if len(res.State.Queue) > 0 {
 		res = advanceQueue(res)
@@ -122,18 +123,18 @@ func newResolution(state RoundState) RoundResolution {
 			Dealer:    state.Dealer,
 			Queue:     cloneHands(state.Queue),
 			Completed: cloneHands(state.Completed),
-			Outcomes:  append([]string{}, state.Outcomes...),
+			Outcomes:  append([]Outcome{}, state.Outcomes...),
 		},
 		DealerCards: []card.Card{state.Dealer},
 	}
 }
 
-func appendCompleted(state RoundState, outcome string) RoundState {
+func appendCompleted(state RoundState, outcome Outcome) RoundState {
 	current := cloneCards(state.Player)
 	state.Completed = append(state.Completed, current)
 
-	if outcome == "" && hand.NewHand(current).IsBust() {
-		outcome = "Bust"
+	if outcome == OutcomeNone && hand.NewHand(current).IsBust() {
+		outcome = OutcomeBust
 	}
 
 	state.Outcomes = append(state.Outcomes, outcome)
@@ -164,7 +165,7 @@ func settleDealer(res RoundResolution, session *Session) RoundResolution {
 	res.DealerCards = dealerCards
 
 	for i := range res.State.Outcomes {
-		if res.State.Outcomes[i] == "" && i < len(outcomes) {
+		if res.State.Outcomes[i] == OutcomeNone && i < len(outcomes) {
 			res.State.Outcomes[i] = outcomes[i]
 		}
 	}
@@ -178,9 +179,9 @@ func settleDealer(res RoundResolution, session *Session) RoundResolution {
 	} else {
 		parts := make([]string, 0, len(outcomes))
 		for i, outcome := range outcomes {
-			label := outcome
+			label := outcome.String()
 			if label == "" {
-				label = "Pending"
+				label = OutcomePending.String()
 			}
 			parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
 		}
@@ -202,4 +203,11 @@ func cloneHands(hands [][]card.Card) [][]card.Card {
 		out[i] = cloneCards(h)
 	}
 	return out
+}
+
+func parseOutcomeFromString(s string) Outcome {
+	if s == "" {
+		return OutcomeNone
+	}
+	return ParseOutcome(s)
 }

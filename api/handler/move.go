@@ -67,16 +67,15 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		var result game.PlayerMoveResult
 		switch decision {
 		case strategy.Hit:
-			result, err = session.Player.Hit(session)
+			err = session.Player.Hit(session)
 		case strategy.Stand:
-			result, err = session.Player.Stand(session)
+			err = session.Player.Stand(session)
 		case strategy.DoubleDown:
-			result, err = session.Player.Double(session)
+			err = session.Player.Double(session)
 		case strategy.Split:
-			result, err = session.Player.Split(session)
+			err = session.Player.Split(session)
 		default:
 			writeError(w, http.StatusBadRequest, "INVALID_MOVE", "Unsupported move")
 			return
@@ -91,7 +90,7 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		if result.RoundComplete {
+		if !session.Player.CanMove() {
 			if len(session.Player.InactiveHands) == 0 {
 				if session.Dealer != nil {
 					session.Dealer.Finish(session)
@@ -137,12 +136,12 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		}
 
 		resp := struct {
-			RoundState     string     `json:"roundState"`
-			ActiveHand     []string   `json:"activeHand"`
-			InactiveHands  [][]string `json:"inactiveHands"`
-			CompletedHands [][]string `json:"completedHands"`
-			DealerCards    []string   `json:"dealerCards"`
-			Outcomes       []string   `json:"outcomes"`
+			RoundState     string         `json:"roundState"`
+			ActiveHand     []string       `json:"activeHand"`
+			InactiveHands  [][]string     `json:"inactiveHands"`
+			CompletedHands [][]string     `json:"completedHands"`
+			DealerCards    []string       `json:"dealerCards"`
+			Outcomes       []game.Outcome `json:"outcomes"`
 			ShoeState      struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`
