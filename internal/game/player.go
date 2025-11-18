@@ -33,14 +33,12 @@ func (p *Player) Hit(session *Session) error {
 	p.ActiveHand.Cards = append(p.ActiveHand.Cards, session.DrawCard())
 
 	if p.ActiveHand.IsBust() {
-		p.completeActiveHand(session, OutcomeBust)
-		p.finalizeOrAdvance()
+		p.completeAndAdvance()
 		return nil
 	}
 
 	if p.ActiveHand.Value() == 21 {
-		p.completeActiveHand(session, OutcomeNone)
-		p.finalizeOrAdvance()
+		p.completeAndAdvance()
 		return nil
 	}
 
@@ -52,8 +50,7 @@ func (p *Player) Stand(session *Session) error {
 		return ErrNoActiveHand
 	}
 
-	p.completeActiveHand(session, OutcomeNone)
-	p.finalizeOrAdvance()
+	p.completeAndAdvance()
 	return nil
 }
 
@@ -64,12 +61,7 @@ func (p *Player) Double(session *Session) error {
 
 	p.ActiveHand.Cards = append(p.ActiveHand.Cards, session.DrawCard())
 
-	outcome := OutcomeNone
-	if p.ActiveHand.IsBust() {
-		outcome = OutcomeBust
-	}
-	p.completeActiveHand(session, outcome)
-	p.finalizeOrAdvance()
+	p.completeAndAdvance()
 	return nil
 }
 
@@ -91,20 +83,10 @@ func (p *Player) Split(session *Session) error {
 	return nil
 }
 
-func (p *Player) completeActiveHand(session *Session, outcome Outcome) {
+func (p *Player) completeAndAdvance() {
 	completed := hand.NewHand(p.ActiveHand.Cards)
 	p.CompletedHands = append(p.CompletedHands, completed)
 
-	if outcome == OutcomeNone {
-		if completed.IsBust() {
-			outcome = OutcomeBust
-		}
-	}
-
-	session.Outcomes = append(session.Outcomes, outcome)
-}
-
-func (p *Player) finalizeOrAdvance() {
 	if len(p.InactiveHands) > 0 {
 		p.ActiveHand = hand.NewHand(p.InactiveHands[0].Cards)
 		p.InactiveHands = p.InactiveHands[1:]
