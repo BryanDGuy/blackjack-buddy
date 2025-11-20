@@ -1,7 +1,6 @@
 package game
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -27,68 +26,17 @@ const (
 	RoundStateComplete RoundStateType = "complete"
 )
 
-type Outcome int
+type Outcome string
 
 const (
-	OutcomeNone Outcome = iota
-	OutcomeBust
-	OutcomeWin
-	OutcomeLose
-	OutcomePush
-	OutcomeBlackjack
-	OutcomePending
+	OutcomeNone      Outcome = ""
+	OutcomeBust      Outcome = "Bust"
+	OutcomeWin       Outcome = "Win"
+	OutcomeLose      Outcome = "Lose"
+	OutcomePush      Outcome = "Push"
+	OutcomeBlackjack Outcome = "Blackjack"
+	OutcomePending   Outcome = "Pending"
 )
-
-func (o Outcome) String() string {
-	switch o {
-	case OutcomeBust:
-		return "Bust"
-	case OutcomeWin:
-		return "Win"
-	case OutcomeLose:
-		return "Lose"
-	case OutcomePush:
-		return "Push"
-	case OutcomeBlackjack:
-		return "Blackjack"
-	case OutcomePending:
-		return "Pending"
-	default:
-		return ""
-	}
-}
-
-func (o Outcome) MarshalJSON() ([]byte, error) {
-	return json.Marshal(o.String())
-}
-
-func (o *Outcome) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	*o = ParseOutcome(s)
-	return nil
-}
-
-func ParseOutcome(s string) Outcome {
-	switch s {
-	case "Bust":
-		return OutcomeBust
-	case "Win":
-		return OutcomeWin
-	case "Lose":
-		return OutcomeLose
-	case "Push":
-		return OutcomePush
-	case "Blackjack":
-		return OutcomeBlackjack
-	case "Pending":
-		return OutcomePending
-	default:
-		return OutcomeNone
-	}
-}
 
 type Session struct {
 	id         string
@@ -230,9 +178,9 @@ func (s *Session) FormatOutcomes() string {
 
 	parts := make([]string, 0, len(s.outcomes))
 	for i, outcome := range s.outcomes {
-		label := outcome.String()
+		label := string(outcome)
 		if label == "" {
-			label = OutcomePending.String()
+			label = string(OutcomePending)
 		}
 		parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
 	}

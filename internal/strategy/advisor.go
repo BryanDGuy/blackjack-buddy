@@ -6,29 +6,14 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/hand"
 )
 
-type Decision int
+type Decision string
 
 const (
-	Hit Decision = iota
-	Stand
-	DoubleDown
-	Split
+	Hit        Decision = "HIT"
+	Stand      Decision = "STAND"
+	DoubleDown Decision = "DOUBLE DOWN"
+	Split      Decision = "SPLIT"
 )
-
-func (d Decision) ToString() string {
-	switch d {
-	case Hit:
-		return "HIT"
-	case Stand:
-		return "STAND"
-	case DoubleDown:
-		return "DOUBLE DOWN"
-	case Split:
-		return "SPLIT"
-	default:
-		return "UNKNOWN"
-	}
-}
 
 type Strategy interface {
 	GetDecision(playerHand, dealerHand *hand.Hand) Decision

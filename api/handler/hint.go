@@ -57,7 +57,7 @@ func NewHint(store *store.SessionStore, advisor *strategy.Advisor) http.HandlerF
 		resp := struct {
 			Hint string `json:"hint"`
 		}{
-			Hint: decision.ToString(),
+			Hint: string(decision),
 		}
 
 		w.Header().Set("Content-Type", "application/json")

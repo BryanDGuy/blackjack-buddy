@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -56,17 +55,14 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		decision, err := parseDecision(req.Move)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "INVALID_MOVE", err.Error())
-			return
-		}
+		decision := strategy.Decision(req.Move)
 
 		if !isValidMove(session.Player().ActiveHand(), decision) {
 			writeError(w, http.StatusBadRequest, "INVALID_MOVE", "Move is not valid for current hand state")
 			return
 		}
 
+		var err error
 		switch decision {
 		case strategy.Hit:
 			err = session.Player().Hit(session)
@@ -167,21 +163,6 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(resp)
-	}
-}
-
-func parseDecision(dec string) (strategy.Decision, error) {
-	switch dec {
-	case "HIT":
-		return strategy.Hit, nil
-	case "STAND":
-		return strategy.Stand, nil
-	case "DOUBLE DOWN":
-		return strategy.DoubleDown, nil
-	case "SPLIT":
-		return strategy.Split, nil
-	default:
-		return strategy.Hit, fmt.Errorf("invalid decision: %s", dec)
 	}
 }
 

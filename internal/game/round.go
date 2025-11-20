@@ -56,7 +56,7 @@ func applyHit(state RoundState, session *Session) RoundResolution {
 
 	playerHand := hand.NewHand(res.State.Player)
 	if playerHand.IsBust() {
-		res.Outcome = OutcomeBust.String()
+		res.Outcome = string(OutcomeBust)
 		res.RoundComplete = true
 	} else if playerHand.Value() == 21 {
 		res.RoundComplete = true
@@ -71,7 +71,7 @@ func applyDouble(state RoundState, session *Session) RoundResolution {
 	res.RoundComplete = true
 
 	if hand.NewHand(res.State.Player).IsBust() {
-		res.Outcome = OutcomeBust.String()
+		res.Outcome = string(OutcomeBust)
 	}
 
 	return finalize(res, session)
@@ -104,8 +104,7 @@ func finalize(res RoundResolution, session *Session) RoundResolution {
 		return res
 	}
 
-	outcome := parseOutcomeFromString(res.Outcome)
-	res.State = appendCompleted(res.State, outcome)
+	res.State = appendCompleted(res.State, Outcome(res.Outcome))
 
 	if len(res.State.Queue) > 0 {
 		res = advanceQueue(res)
@@ -181,9 +180,9 @@ func settleDealer(res RoundResolution, session *Session) RoundResolution {
 	} else {
 		parts := make([]string, 0, len(outcomes))
 		for i, outcome := range outcomes {
-			label := outcome.String()
+			label := string(outcome)
 			if label == "" {
-				label = OutcomePending.String()
+				label = string(OutcomePending)
 			}
 			parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
 		}
@@ -205,11 +204,4 @@ func cloneHands(hands [][]card.Card) [][]card.Card {
 		out[i] = cloneCards(h)
 	}
 	return out
-}
-
-func parseOutcomeFromString(s string) Outcome {
-	if s == "" {
-		return OutcomeNone
-	}
-	return ParseOutcome(s)
 }
