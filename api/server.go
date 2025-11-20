@@ -12,16 +12,16 @@ import (
 )
 
 type server struct {
-	advisor     *strategy.Advisor
+	advisor      *strategy.Advisor
 	sessionStore *store.SessionStore
-	ui          fs.FS
+	ui           fs.FS
 }
 
 func newServer(strat strategy.Strategy) *server {
 	return &server{
-		advisor:     strategy.NewAdvisor(strat),
+		advisor:      strategy.NewAdvisor(strat),
 		sessionStore: store.NewSessionStore(),
-		ui:          loadUI(),
+		ui:           loadUI(),
 	}
 }
 
@@ -38,16 +38,16 @@ func (s *server) handleUI(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) Start(port int) error {
 	mux := http.NewServeMux()
-	
-	mux.HandleFunc("/api/session", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/session" {
-			handler.NewSession(s.sessionStore)(w, r)
+
+	mux.HandleFunc("/api/game", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/game" {
+			handler.NewGame(s.sessionStore)(w, r)
 			return
 		}
 		http.NotFound(w, r)
 	})
-	
-	mux.HandleFunc("/api/session/", func(w http.ResponseWriter, r *http.Request) {
+
+	mux.HandleFunc("/api/game/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasSuffix(path, "/deal") && r.Method == "POST" {
 			handler.NewDeal(s.sessionStore)(w, r)

@@ -7,28 +7,28 @@ import (
 )
 
 type SessionStore struct {
-	mu       sync.RWMutex
-	sessions map[string]*game.Session
+	mu    sync.RWMutex
+	games map[string]*game.Game
 }
 
 func NewSessionStore() *SessionStore {
 	return &SessionStore{
-		sessions: make(map[string]*game.Session),
+		games: make(map[string]*game.Game),
 	}
 }
 
-func (s *SessionStore) Create(session *game.Session) string {
+func (s *SessionStore) Create(game *game.Game) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.sessions[session.ID] = session
-	return session.ID
+	s.games[game.ID] = game
+	return game.ID
 }
 
-func (s *SessionStore) Get(id string) (*game.Session, bool) {
+func (s *SessionStore) Get(id string) (*game.Game, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	session, exists := s.sessions[id]
-	return session, exists
+	game, exists := s.games[id]
+	return game, exists
 }

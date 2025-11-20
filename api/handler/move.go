@@ -12,6 +12,7 @@ import (
 	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/game"
 	"github.com/bryan/blackjack-buddy/internal/hand"
+	playerpkg "github.com/bryan/blackjack-buddy/internal/player"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
@@ -28,23 +29,23 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 
 		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 		if len(pathParts) < 4 {
-			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid session ID in path")
+			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid game ID in path")
 			return
 		}
 
-		sessionID := pathParts[2]
-		session, exists := store.Get(sessionID)
+		gameId := pathParts[2]
+		g, exists := store.Get(gameId)
 		if !exists {
-			writeError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found")
+			writeError(w, http.StatusNotFound, "GAME_NOT_FOUND", "Game not found")
 			return
 		}
 
-		if session.RoundState != game.RoundStateActive {
+		if g.RoundState != game.RoundStateActive {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 			return
 		}
 
-		player := session.Player
+		player := g.Player
 		if player == nil || player.ActiveHand == nil {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
 			return
@@ -66,21 +67,25 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		var err error
 		switch decision {
 		case strategy.Hit:
-			err = player.Hit(session)
+			err = g.Hit()
 		case strategy.Stand:
-			err = player.Stand(session)
+			err = g.Stand()
 		case strategy.DoubleDown:
-			err = player.Double(session)
+			err = g.Double()
 		case strategy.Split:
-			err = player.Split(session)
+			err = g.Split()
 		default:
 			writeError(w, http.StatusBadRequest, "INVALID_MOVE", "Unsupported move")
 			return
 		}
 
 		if err != nil {
-			if errors.Is(err, game.ErrInvalidMove) || errors.Is(err, game.ErrInvalidSplit) {
+			if errors.Is(err, playerpkg.ErrInvalidMove) || errors.Is(err, playerpkg.ErrInvalidSplit) {
 				writeError(w, http.StatusBadRequest, "INVALID_MOVE", err.Error())
+				return
+			}
+			if errors.Is(err, playerpkg.ErrNoActiveHand) {
+				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", err.Error())
 				return
 			}
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to apply decision")
@@ -90,20 +95,20 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		roundComplete := !player.CanMove() && len(player.InactiveHands) == 0
 
 		if roundComplete {
-			if session.Dealer != nil && session.Dealer.Hand != nil && len(session.Dealer.Hand.Cards) > 0 {
-				for session.Dealer.Hand.Value() < 17 {
-					session.Dealer.Hand.AddCard(session.DrawCard())
+			if g.Dealer != nil && g.Dealer.Hand != nil && len(g.Dealer.Hand.Cards) > 0 {
+				for g.Dealer.Hand.Value() < 17 {
+					g.Dealer.Hand.AddCard(g.DrawCard())
 				}
-				outcomes := session.DetermineOutcome()
-				session.UpdateOutcomes(outcomes)
+				outcomes := g.DetermineOutcome()
+				g.UpdateOutcomes(outcomes)
 			}
-			session.RoundState = game.RoundStateComplete
+			g.RoundState = game.RoundStateComplete
 		} else {
-			session.RoundState = game.RoundStateActive
+			g.RoundState = game.RoundStateActive
 		}
 
 		counts := make(map[string]int)
-		maps.Copy(counts, session.Shoe.RankCounts)
+		maps.Copy(counts, g.Shoe.RankCounts)
 
 		activeHand := []string{}
 		if player.ActiveHand != nil {
@@ -121,8 +126,8 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		}
 
 		dealerCards := []string{}
-		if session.Dealer != nil && session.Dealer.Hand != nil {
-			dealerCards = helpers.CardsToStrings(session.Dealer.Hand.Cards)
+		if g.Dealer != nil && g.Dealer.Hand != nil {
+			dealerCards = helpers.CardsToStrings(g.Dealer.Hand.Cards)
 		}
 
 		resp := struct {
@@ -137,17 +142,17 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 				RankCounts map[string]int `json:"rankCounts"`
 			} `json:"shoeState"`
 		}{
-			RoundState:     string(session.RoundState),
+			RoundState:     string(g.RoundState),
 			ActiveHand:     activeHand,
 			InactiveHands:  inactiveHands,
 			CompletedHands: completedHands,
 			DealerCards:    dealerCards,
-			Outcomes:       session.Outcomes,
+			Outcomes:       g.Outcomes,
 			ShoeState: struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`
 			}{
-				TotalCards: session.Shoe.TotalCards,
+				TotalCards: g.Shoe.TotalCards,
 				RankCounts: counts,
 			},
 		}

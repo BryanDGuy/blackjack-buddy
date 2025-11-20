@@ -19,35 +19,35 @@ func NewHint(store *store.SessionStore, advisor *strategy.Advisor) http.HandlerF
 
 		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 		if len(pathParts) < 4 {
-			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid session ID in path")
+			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid game ID in path")
 			return
 		}
 
-		sessionID := pathParts[2]
-		session, exists := store.Get(sessionID)
+		gameId := pathParts[2]
+		g, exists := store.Get(gameId)
 		if !exists {
-			writeError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found")
+			writeError(w, http.StatusNotFound, "GAME_NOT_FOUND", "Game not found")
 			return
 		}
 
-		if session.RoundState != game.RoundStateActive {
+		if g.RoundState != game.RoundStateActive {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 			return
 		}
 
-		player := session.Player
+		player := g.Player
 		if player == nil || player.ActiveHand == nil {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
 			return
 		}
 
-		if session.Dealer == nil || session.Dealer.Hand == nil {
+		if g.Dealer == nil || g.Dealer.Hand == nil {
 			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No dealer hand")
 			return
 		}
 
 		playerHand := player.ActiveHand
-		dealerHand := session.Dealer.Hand
+		dealerHand := g.Dealer.Hand
 
 		decision, err := advisor.MakeDecision(playerHand, dealerHand)
 		if err != nil {

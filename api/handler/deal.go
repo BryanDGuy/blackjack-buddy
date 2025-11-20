@@ -22,32 +22,32 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 
 		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 		if len(pathParts) < 4 {
-			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid session ID in path")
+			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid game ID in path")
 			return
 		}
 
-		sessionID := pathParts[2]
-		session, exists := store.Get(sessionID)
+		gameId := pathParts[2]
+		g, exists := store.Get(gameId)
 		if !exists {
-			writeError(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found")
+			writeError(w, http.StatusNotFound, "GAME_NOT_FOUND", "Game not found")
 			return
 		}
 
-		if session.RoundState == game.RoundStateActive {
+		if g.RoundState == game.RoundStateActive {
 			writeError(w, http.StatusConflict, "ROUND_ALREADY_ACTIVE", "Round is already active")
 			return
 		}
 
-		player := session.Player
-		player.ActiveHand = hand.NewHand([]card.Card{session.DrawCard(), session.DrawCard()})
+		player := g.Player
+		player.ActiveHand = hand.NewHand([]card.Card{g.DrawCard(), g.DrawCard()})
 		player.InactiveHands = nil
 		player.CompletedHands = nil
-		session.Dealer.Hand = hand.NewHand([]card.Card{session.DrawCard()})
-		session.Outcomes = nil
-		session.RoundState = game.RoundStateActive
+		g.Dealer.Hand = hand.NewHand([]card.Card{g.DrawCard()})
+		g.Outcomes = nil
+		g.RoundState = game.RoundStateActive
 
 		counts := make(map[string]int)
-		maps.Copy(counts, session.Shoe.RankCounts)
+		maps.Copy(counts, g.Shoe.RankCounts)
 
 		resp := struct {
 			PlayerCards []string `json:"playerCards"`
@@ -58,12 +58,12 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 			} `json:"shoeState"`
 		}{
 			PlayerCards: helpers.CardsToStrings(player.ActiveHand.Cards),
-			DealerCard:  session.Dealer.Hand.Cards[0].ToString(),
+			DealerCard:  g.Dealer.Hand.Cards[0].ToString(),
 			ShoeState: struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`
 			}{
-				TotalCards: session.Shoe.TotalCards,
+				TotalCards: g.Shoe.TotalCards,
 				RankCounts: counts,
 			},
 		}

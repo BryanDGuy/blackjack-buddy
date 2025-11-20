@@ -7,23 +7,24 @@ import (
 	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/dealer"
 	"github.com/bryan/blackjack-buddy/internal/game"
+	"github.com/bryan/blackjack-buddy/internal/player"
 )
 
-func NewSession(store *store.SessionStore) http.HandlerFunc {
+func NewGame(store *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST method is allowed")
 			return
 		}
 
-		session := game.NewSession(game.NewPlayer(), dealer.NewDealer())
+		g := game.NewGame(player.NewPlayer(), dealer.NewDealer())
 
-		sessionID := store.Create(session)
+		gameId := store.Create(g)
 
 		resp := struct {
-			SessionID string `json:"sessionId"`
+			GameId string `json:"gameId"`
 		}{
-			SessionID: sessionID,
+			GameId: gameId,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

@@ -1,5 +1,5 @@
-export interface SessionResponse {
-  sessionId: string;
+export interface GameResponse {
+  gameId: string;
 }
 
 export interface DealResponse {
@@ -31,27 +31,27 @@ export interface ErrorResponse {
   code: string;
 }
 
-let sessionId: string | null = null;
+let gameId: string | null = null;
 
-export async function createSession(): Promise<string> {
-  const res = await fetch('/api/session', {
+export async function createGame(): Promise<string> {
+  const res = await fetch('/api/game', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
   });
   if (!res.ok) {
     const err: ErrorResponse = await res.json();
-    throw new Error(err.error || 'Failed to create session');
+    throw new Error(err.error || 'Failed to create game');
   }
-  const data: SessionResponse = await res.json();
-  sessionId = data.sessionId;
-  return sessionId;
+  const data: GameResponse = await res.json();
+  gameId = data.gameId;
+  return gameId;
 }
 
 export async function loadDeal(): Promise<DealResponse> {
-  if (!sessionId) {
-    await createSession();
+  if (!gameId) {
+    await createGame();
   }
-  const res = await fetch(`/api/session/${sessionId}/deal`, {
+  const res = await fetch(`/api/game/${gameId}/deal`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
   });
@@ -63,10 +63,10 @@ export async function loadDeal(): Promise<DealResponse> {
 }
 
 export async function makeMove(move: string): Promise<MoveResponse> {
-  if (!sessionId) {
-    throw new Error('No active session');
+  if (!gameId) {
+    throw new Error('No active game');
   }
-  const res = await fetch(`/api/session/${sessionId}/move`, {
+  const res = await fetch(`/api/game/${gameId}/move`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ move })
@@ -79,11 +79,11 @@ export async function makeMove(move: string): Promise<MoveResponse> {
 }
 
 export async function getHint(): Promise<string> {
-  if (!sessionId) {
+  if (!gameId) {
     return '';
   }
   try {
-    const res = await fetch(`/api/session/${sessionId}/hint`, {
+    const res = await fetch(`/api/game/${gameId}/hint`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
