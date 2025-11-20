@@ -5,19 +5,11 @@ import (
 )
 
 type Dealer struct {
-	hand *hand.Hand
+	Hand *hand.Hand
 }
 
 func NewDealer() *Dealer {
 	return &Dealer{
-		hand: nil,
+		Hand: nil,
 	}
-}
-
-func (d *Dealer) Hand() *hand.Hand {
-	return d.hand
-}
-
-func (d *Dealer) SetHand(h *hand.Hand) {
-	d.hand = h
 }

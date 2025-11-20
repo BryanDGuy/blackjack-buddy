@@ -11,12 +11,12 @@ func TestNewDeck(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
 	d := NewDeck(rng)
 
-	if d.Count() != 52 {
-		t.Errorf("NewDeck() created deck with %d cards, want 52", d.Count())
+	if len(d.Cards) != 52 {
+		t.Errorf("NewDeck() created deck with %d cards, want 52", len(d.Cards))
 	}
 
 	rankCounts := make(map[card.Rank]int)
-	for _, c := range d.Cards() {
+	for _, c := range d.Cards {
 		rankCounts[c.Rank()]++
 	}
 
@@ -47,17 +47,17 @@ func TestDeck_Shuffle(t *testing.T) {
 	d1.Shuffle(rng1)
 	d2.Shuffle(rng2)
 
-	if d1.Count() != 52 || d2.Count() != 52 {
+	if len(d1.Cards) != 52 || len(d2.Cards) != 52 {
 		t.Errorf("Shuffle() changed deck size")
 	}
 
 	rankCounts1 := make(map[card.Rank]int)
 	rankCounts2 := make(map[card.Rank]int)
 
-	for _, c := range d1.Cards() {
+	for _, c := range d1.Cards {
 		rankCounts1[c.Rank()]++
 	}
-	for _, c := range d2.Cards() {
+	for _, c := range d2.Cards {
 		rankCounts2[c.Rank()]++
 	}
 
@@ -77,8 +77,8 @@ func TestDeck_Shuffle_ChangesOrder(t *testing.T) {
 	d2.Shuffle(rng)
 
 	allSame := true
-	cards1 := d1.Cards()
-	cards2 := d2.Cards()
+	cards1 := d1.Cards
+	cards2 := d2.Cards
 	for i := range cards1 {
 		if cards1[i].Rank() != cards2[i].Rank() {
 			allSame = false

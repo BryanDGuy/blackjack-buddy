@@ -49,7 +49,7 @@ const (
 
 func (h *Hand) GetType() HandType {
 	if h.CanSplit() {
-		pairCard := h.GetCard(0)
+		pairCard := h.Cards[0]
 		switch pairCard.Rank() {
 		case card.Ace:
 			return PairA

@@ -8,7 +8,7 @@ import (
 )
 
 type Hand struct {
-	cards []card.Card
+	Cards []card.Card
 }
 
 func NewHand(cards []card.Card) *Hand {
@@ -16,30 +16,16 @@ func NewHand(cards []card.Card) *Hand {
 	copy(c, cards)
 
 	return &Hand{
-		cards: c,
+		Cards: c,
 	}
 }
 
-func (h *Hand) Cards() []card.Card {
-	c := make([]card.Card, len(h.cards))
-	copy(c, h.cards)
-	return c
-}
-
 func (h *Hand) AddCard(c card.Card) {
-	h.cards = append(h.cards, c)
-}
-
-func (h *Hand) GetCard(index int) card.Card {
-	return h.cards[index]
-}
-
-func (h *Hand) Count() int {
-	return len(h.cards)
+	h.Cards = append(h.Cards, c)
 }
 
 func (h *Hand) IsEmpty() bool {
-	return len(h.cards) == 0
+	return len(h.Cards) == 0
 }
 
 func (h *Hand) IsBust() bool {
@@ -47,22 +33,22 @@ func (h *Hand) IsBust() bool {
 }
 
 func (h *Hand) IsBlackjack() bool {
-	return len(h.cards) == 2 && h.Value() == 21
+	return len(h.Cards) == 2 && h.Value() == 21
 }
 
 func (h *Hand) CanSplit() bool {
-	if len(h.cards) != 2 {
+	if len(h.Cards) != 2 {
 		return false
 	}
 
-	return h.cards[0].Rank() == h.cards[1].Rank()
+	return h.Cards[0].Rank() == h.Cards[1].Rank()
 }
 
 func (h *Hand) Value() int {
 	total := 0
 	aces := 0
 
-	for _, c := range h.cards {
+	for _, c := range h.Cards {
 		total += c.Value()
 
 		if c.Rank() == card.Ace {
@@ -86,7 +72,7 @@ func (h *Hand) IsSoft() bool {
 	totalWithoutAces := 0
 	aces := 0
 
-	for _, c := range h.cards {
+	for _, c := range h.Cards {
 		if c.Rank() == card.Ace {
 			aces++
 		} else {
@@ -94,7 +80,6 @@ func (h *Hand) IsSoft() bool {
 		}
 	}
 
-	// Checks if there is at least one ace and the hand is not a bust if the ace is counted as 11.
 	return aces > 0 && totalWithoutAces+11+(aces-1) <= 21
 }
 
@@ -104,7 +89,7 @@ func (h *Hand) ToString() string {
 	}
 
 	var cards []string
-	for _, c := range h.cards {
+	for _, c := range h.Cards {
 		cards = append(cards, c.ToString())
 	}
 	return fmt.Sprintf("[%s]", strings.Join(cards, ", "))

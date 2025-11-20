@@ -21,8 +21,8 @@ func (s *SessionStore) Create(session *game.Session) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.sessions[session.ID()] = session
-	return session.ID()
+	s.sessions[session.ID] = session
+	return session.ID
 }
 
 func (s *SessionStore) Get(id string) (*game.Session, bool) {

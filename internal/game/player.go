@@ -12,62 +12,32 @@ var ErrInvalidSplit = errors.New("invalid split")
 var ErrNoActiveHand = errors.New("no active hand")
 
 type Player struct {
-	activeHand     *hand.Hand
-	inactiveHands  []*hand.Hand
-	completedHands []*hand.Hand
+	ActiveHand     *hand.Hand
+	InactiveHands  []*hand.Hand
+	CompletedHands []*hand.Hand
 }
 
 func NewPlayer() *Player {
 	return &Player{
-		activeHand:     nil,
-		inactiveHands:  nil,
-		completedHands: nil,
+		ActiveHand:     nil,
+		InactiveHands:  nil,
+		CompletedHands: nil,
 	}
-}
-
-func (p *Player) ActiveHand() *hand.Hand {
-	return p.activeHand
-}
-
-func (p *Player) SetActiveHand(h *hand.Hand) {
-	p.activeHand = h
-}
-
-func (p *Player) InactiveHands() []*hand.Hand {
-	hands := make([]*hand.Hand, len(p.inactiveHands))
-	copy(hands, p.inactiveHands)
-	return hands
-}
-
-func (p *Player) SetInactiveHands(hands []*hand.Hand) {
-	p.inactiveHands = make([]*hand.Hand, len(hands))
-	copy(p.inactiveHands, hands)
-}
-
-func (p *Player) CompletedHands() []*hand.Hand {
-	hands := make([]*hand.Hand, len(p.completedHands))
-	copy(hands, p.completedHands)
-	return hands
-}
-
-func (p *Player) SetCompletedHands(hands []*hand.Hand) {
-	p.completedHands = make([]*hand.Hand, len(hands))
-	copy(p.completedHands, hands)
 }
 
 func (p *Player) Hit(session *Session) error {
-	if p.activeHand == nil || p.activeHand.IsEmpty() {
+	if p.ActiveHand == nil || p.ActiveHand.IsEmpty() {
 		return ErrNoActiveHand
 	}
 
-	p.activeHand.AddCard(session.DrawCard())
+	p.ActiveHand.AddCard(session.DrawCard())
 
-	if p.activeHand.IsBust() {
+	if p.ActiveHand.IsBust() {
 		p.completeAndAdvance()
 		return nil
 	}
 
-	if p.activeHand.Value() == 21 {
+	if p.ActiveHand.Value() == 21 {
 		p.completeAndAdvance()
 		return nil
 	}
@@ -76,7 +46,7 @@ func (p *Player) Hit(session *Session) error {
 }
 
 func (p *Player) Stand(session *Session) error {
-	if p.activeHand == nil || p.activeHand.IsEmpty() {
+	if p.ActiveHand == nil || p.ActiveHand.IsEmpty() {
 		return ErrNoActiveHand
 	}
 
@@ -85,46 +55,50 @@ func (p *Player) Stand(session *Session) error {
 }
 
 func (p *Player) Double(session *Session) error {
-	if p.activeHand == nil || p.activeHand.Count() != 2 {
+	if p.ActiveHand == nil || len(p.ActiveHand.Cards) != 2 {
 		return ErrInvalidMove
 	}
 
-	p.activeHand.AddCard(session.DrawCard())
+	p.ActiveHand.AddCard(session.DrawCard())
 
 	p.completeAndAdvance()
 	return nil
 }
 
 func (p *Player) Split(session *Session) error {
-	if p.activeHand == nil || p.activeHand.Count() != 2 {
+	if p.ActiveHand == nil || len(p.ActiveHand.Cards) != 2 {
 		return ErrInvalidMove
 	}
 
-	if !p.activeHand.CanSplit() {
+	if !p.ActiveHand.CanSplit() {
 		return ErrInvalidSplit
 	}
 
-	first := hand.NewHand([]card.Card{p.activeHand.GetCard(0), session.DrawCard()})
-	second := hand.NewHand([]card.Card{p.activeHand.GetCard(1), session.DrawCard()})
+	first := hand.NewHand([]card.Card{p.ActiveHand.Cards[0], session.DrawCard()})
+	second := hand.NewHand([]card.Card{p.ActiveHand.Cards[1], session.DrawCard()})
 
-	p.activeHand = first
-	p.inactiveHands = append([]*hand.Hand{second}, p.inactiveHands...)
+	p.ActiveHand = first
+	p.InactiveHands = append([]*hand.Hand{second}, p.InactiveHands...)
 
 	return nil
 }
 
 func (p *Player) completeAndAdvance() {
-	completed := hand.NewHand(p.activeHand.Cards())
-	p.completedHands = append(p.completedHands, completed)
+	cardsCopy := make([]card.Card, len(p.ActiveHand.Cards))
+	copy(cardsCopy, p.ActiveHand.Cards)
+	completed := hand.NewHand(cardsCopy)
+	p.CompletedHands = append(p.CompletedHands, completed)
 
-	if len(p.inactiveHands) > 0 {
-		p.activeHand = hand.NewHand(p.inactiveHands[0].Cards())
-		p.inactiveHands = p.inactiveHands[1:]
+	if len(p.InactiveHands) > 0 {
+		cardsCopy2 := make([]card.Card, len(p.InactiveHands[0].Cards))
+		copy(cardsCopy2, p.InactiveHands[0].Cards)
+		p.ActiveHand = hand.NewHand(cardsCopy2)
+		p.InactiveHands = p.InactiveHands[1:]
 	} else {
-		p.activeHand = nil
+		p.ActiveHand = nil
 	}
 }
 
 func (p *Player) CanMove() bool {
-	return p.activeHand != nil && !p.activeHand.IsEmpty() && !p.activeHand.IsBust()
+	return p.ActiveHand != nil && !p.ActiveHand.IsEmpty() && !p.ActiveHand.IsBust()
 }

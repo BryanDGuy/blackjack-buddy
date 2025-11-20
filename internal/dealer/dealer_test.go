@@ -9,7 +9,7 @@ func TestNewDealer(t *testing.T) {
 	if d == nil {
 		t.Fatal("NewDealer returned nil")
 	}
-	if d.Hand() != nil {
+	if d.Hand != nil {
 		t.Error("NewDealer should have nil Hand")
 	}
 }
