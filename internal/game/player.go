@@ -84,18 +84,17 @@ func (p *Player) Split(session *Session) error {
 }
 
 func (p *Player) completeAndAdvance() {
-	cardsCopy := make([]card.Card, len(p.ActiveHand.Cards))
-	copy(cardsCopy, p.ActiveHand.Cards)
-	completed := hand.NewHand(cardsCopy)
-	p.CompletedHands = append(p.CompletedHands, completed)
+	activeHandCardsCopy := make([]card.Card, len(p.ActiveHand.Cards))
+	copy(activeHandCardsCopy, p.ActiveHand.Cards)
+
+	p.CompletedHands = append(p.CompletedHands, hand.NewHand(activeHandCardsCopy))
+	p.ActiveHand = nil
 
 	if len(p.InactiveHands) > 0 {
-		cardsCopy2 := make([]card.Card, len(p.InactiveHands[0].Cards))
-		copy(cardsCopy2, p.InactiveHands[0].Cards)
-		p.ActiveHand = hand.NewHand(cardsCopy2)
+		firstInactiveHandCardsCopy := make([]card.Card, len(p.InactiveHands[0].Cards))
+		copy(firstInactiveHandCardsCopy, p.InactiveHands[0].Cards)
+		p.ActiveHand = hand.NewHand(firstInactiveHandCardsCopy)
 		p.InactiveHands = p.InactiveHands[1:]
-	} else {
-		p.ActiveHand = nil
 	}
 }
 
