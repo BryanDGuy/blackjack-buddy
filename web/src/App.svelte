@@ -3,7 +3,6 @@
   import { KEY_BINDINGS } from './constants';
   import { loadDeal, makeMove, getHint } from './api';
   import Stats from './components/Stats.svelte';
-  import DeckPanel from './components/DeckPanel.svelte';
   import StrategyTable from './components/StrategyTable.svelte';
 
   let playerCards: string[] = [];
@@ -13,7 +12,6 @@
   let resolvedHands: string[][] = [];
   let correct = 0;
   let total = 0;
-  let shoeState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
   let hint = '';
   let resultText = 'Result: -';
   let resultClass = 'result';
@@ -59,7 +57,6 @@
       resolvedHands = [];
       outcomes = [];
       roundState = 'active';
-      shoeState = data.shoeState;
       hint = '';
       resultText = 'Result: -';
       resultClass = 'result';
@@ -92,7 +89,6 @@
       unresolvedHands = result.unresolvedHands;
       resolvedHands = result.resolvedHands || [];
       outcomes = result.outcomes;
-      shoeState = result.shoeState;
 
       if (result.dealerCards.length > 0) {
         dealerCards = result.dealerCards;
@@ -237,7 +233,6 @@
   <div class={outcomeClass}>{outcomeText}</div>
   <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
 
-  <DeckPanel {shoeState} />
   <StrategyTable />
 </div>
 

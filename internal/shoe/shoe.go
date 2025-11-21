@@ -8,9 +8,7 @@ import (
 )
 
 type Shoe struct {
-	Cards      []card.Card
-	TotalCards int
-	RankCounts map[string]int
+	Cards []card.Card
 }
 
 func NewShoe(decks []deck.Deck) Shoe {
@@ -19,16 +17,8 @@ func NewShoe(decks []deck.Deck) Shoe {
 		cards = append(cards, d.Cards...)
 	}
 
-	counts := make(map[string]int)
-	for _, c := range cards {
-		rankStr := c.ToString()
-		counts[rankStr]++
-	}
-
 	return Shoe{
-		Cards:      cards,
-		TotalCards: len(cards),
-		RankCounts: counts,
+		Cards: cards,
 	}
 }
 
@@ -41,10 +31,5 @@ func (s *Shoe) Shuffle(rng *rand.Rand) {
 func (s *Shoe) Draw() card.Card {
 	card := s.Cards[0]
 	s.Cards = s.Cards[1:]
-
-	rankStr := card.ToString()
-	s.RankCounts[rankStr]--
-	s.TotalCards--
-
 	return card
 }

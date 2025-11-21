@@ -5,7 +5,6 @@ export interface GameResponse {
 export interface DealResponse {
   playerCards: string[];
   dealerCard: string;
-  shoeState: { totalCards: number; rankCounts: Record<string, number> };
 }
 
 export interface MoveRequest {
@@ -19,7 +18,6 @@ export interface MoveResponse {
   resolvedHands: string[][];
   dealerCards: string[];
   outcomes: string[];
-  shoeState: { totalCards: number; rankCounts: Record<string, number> };
 }
 
 export interface HintResponse {

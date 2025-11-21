@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"maps"
-
 	"github.com/bryan/blackjack-buddy/api/helpers"
 	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/game"
@@ -71,9 +69,6 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		counts := make(map[string]int)
-		maps.Copy(counts, g.Shoe.RankCounts)
-
 		activeHand := []string{}
 		if player.ActiveHand != nil {
 			activeHand = helpers.CardsToStrings(player.ActiveHand.Cards)
@@ -101,10 +96,6 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			ResolvedHands   [][]string     `json:"resolvedHands"`
 			DealerCards     []string       `json:"dealerCards"`
 			Outcomes        []game.Outcome `json:"outcomes"`
-			ShoeState       struct {
-				TotalCards int            `json:"totalCards"`
-				RankCounts map[string]int `json:"rankCounts"`
-			} `json:"shoeState"`
 		}{
 			RoundState:      string(g.RoundState),
 			ActiveHand:      activeHand,
@@ -112,13 +103,6 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			ResolvedHands:   resolvedHands,
 			DealerCards:     dealerCards,
 			Outcomes:        g.Outcomes,
-			ShoeState: struct {
-				TotalCards int            `json:"totalCards"`
-				RankCounts map[string]int `json:"rankCounts"`
-			}{
-				TotalCards: g.Shoe.TotalCards,
-				RankCounts: counts,
-			},
 		}
 
 		w.Header().Set("Content-Type", "application/json")

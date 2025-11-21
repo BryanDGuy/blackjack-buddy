@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"maps"
 	"net/http"
 	"strings"
 
@@ -38,26 +37,12 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 
 		g.StartRound()
 
-		counts := make(map[string]int)
-		maps.Copy(counts, g.Shoe.RankCounts)
-
 		resp := struct {
 			PlayerCards []string `json:"playerCards"`
 			DealerCard  string   `json:"dealerCard"`
-			ShoeState   struct {
-				TotalCards int            `json:"totalCards"`
-				RankCounts map[string]int `json:"rankCounts"`
-			} `json:"shoeState"`
 		}{
 			PlayerCards: helpers.CardsToStrings(g.Player.ActiveHand.Cards),
 			DealerCard:  g.Dealer.Hand.Cards[0].ToString(),
-			ShoeState: struct {
-				TotalCards int            `json:"totalCards"`
-				RankCounts map[string]int `json:"rankCounts"`
-			}{
-				TotalCards: g.Shoe.TotalCards,
-				RankCounts: counts,
-			},
 		}
 
 		w.Header().Set("Content-Type", "application/json")

@@ -48,21 +48,21 @@ var (
 
 type Game struct {
 	ID         string
-	Shoe       shoe.Shoe
 	RoundState RoundStateType
 	Player     *player.Player
 	Dealer     *dealer.Dealer
 	Outcomes   []Outcome
+	shoe       shoe.Shoe
 }
 
 func NewGame(p *player.Player, dealer *dealer.Dealer) *Game {
 	return &Game{
 		ID:         uuid.New().String(),
-		Shoe:       generateShuffledShoe(),
 		RoundState: RoundStateNone,
 		Player:     p,
 		Dealer:     dealer,
 		Outcomes:   nil,
+		shoe:       generateShuffledShoe(),
 	}
 }
 
@@ -71,13 +71,13 @@ func (g *Game) StartRound() {
 		return
 	}
 
-	if len(g.Shoe.Cards) < reshuffleThreshold {
-		g.Shoe = generateShuffledShoe()
+	if len(g.shoe.Cards) < reshuffleThreshold {
+		g.shoe = generateShuffledShoe()
 	}
 
 	g.RoundState = RoundStateActive
-	g.Player.RefreshHand(hand.NewHand([]card.Card{g.drawCard(), g.drawCard()}))
-	g.Dealer.RefreshHand(hand.NewHand([]card.Card{g.drawCard()}))
+	g.Player.RefreshHand(hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()}))
+	g.Dealer.RefreshHand(hand.NewHand([]card.Card{g.shoe.Draw()}))
 	g.Outcomes = nil
 }
 
@@ -114,25 +114,18 @@ func (g *Game) ApplyMove(move strategy.Decision) error {
 
 		if len(g.Player.UnresolvedHands) > 0 {
 			g.activateNextHand()
-			g.RoundState = RoundStateActive
 		} else {
 			g.completeDealerHand()
 			g.setOutcomes()
 			g.RoundState = RoundStateComplete
 		}
-	} else {
-		g.RoundState = RoundStateActive
 	}
 
 	return nil
 }
 
-func (g *Game) drawCard() card.Card {
-	return g.Shoe.Draw()
-}
-
 func (g *Game) hit() bool {
-	g.Player.ActiveHand.AddCard(g.drawCard())
+	g.Player.ActiveHand.AddCard(g.shoe.Draw())
 
 	if g.Player.ActiveHand.IsBust() {
 		return true
@@ -154,7 +147,7 @@ func (g *Game) double() (bool, error) {
 		return false, ErrInvalidMove
 	}
 
-	g.Player.ActiveHand.AddCard(g.drawCard())
+	g.Player.ActiveHand.AddCard(g.shoe.Draw())
 	return true, nil
 }
 
@@ -167,8 +160,8 @@ func (g *Game) split() (bool, error) {
 		return false, ErrInvalidSplit
 	}
 
-	first := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[0], g.drawCard()})
-	second := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[1], g.drawCard()})
+	first := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[0], g.shoe.Draw()})
+	second := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[1], g.shoe.Draw()})
 
 	g.Player.ActiveHand = first
 	g.Player.UnresolvedHands = append([]*hand.Hand{second}, g.Player.UnresolvedHands...)
@@ -186,7 +179,7 @@ func generateShuffledShoe() shoe.Shoe {
 	}
 
 	s := shoe.NewShoe(decks)
-	(&s).Shuffle(rng)
+	s.Shuffle(rng)
 
 	return s
 }
@@ -212,7 +205,7 @@ func (g *Game) completeDealerHand() {
 	}
 
 	for g.Dealer.Hand.Value() < 17 {
-		g.Dealer.Hand.AddCard(g.drawCard())
+		g.Dealer.Hand.AddCard(g.shoe.Draw())
 	}
 }
 
