@@ -8,9 +8,7 @@ import (
 
 	"github.com/bryan/blackjack-buddy/api/helpers"
 	"github.com/bryan/blackjack-buddy/api/store"
-	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/game"
-	"github.com/bryan/blackjack-buddy/internal/hand"
 )
 
 func NewDeal(store *store.SessionStore) http.HandlerFunc {
@@ -38,13 +36,7 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		player := g.Player
-		player.ActiveHand = hand.NewHand([]card.Card{g.DrawCard(), g.DrawCard()})
-		player.UnresolvedHands = nil
-		player.ResolvedHands = nil
-		g.Dealer.Hand = hand.NewHand([]card.Card{g.DrawCard()})
-		g.Outcomes = nil
-		g.RoundState = game.RoundStateActive
+		g.StartRound()
 
 		counts := make(map[string]int)
 		maps.Copy(counts, g.Shoe.RankCounts)
@@ -57,7 +49,7 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 				RankCounts map[string]int `json:"rankCounts"`
 			} `json:"shoeState"`
 		}{
-			PlayerCards: helpers.CardsToStrings(player.ActiveHand.Cards),
+			PlayerCards: helpers.CardsToStrings(g.Player.ActiveHand.Cards),
 			DealerCard:  g.Dealer.Hand.Cards[0].ToString(),
 			ShoeState: struct {
 				TotalCards int            `json:"totalCards"`

@@ -11,8 +11,6 @@ import (
 	"github.com/bryan/blackjack-buddy/api/helpers"
 	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/game"
-	"github.com/bryan/blackjack-buddy/internal/hand"
-	playerpkg "github.com/bryan/blackjack-buddy/internal/player"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
@@ -58,51 +56,19 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		}
 
 		decision := strategy.Decision(req.Move)
-
-		if !isValidMove(player.ActiveHand, decision) {
-			writeError(w, http.StatusBadRequest, "INVALID_MOVE", "Move is not valid for current hand state")
-			return
-		}
-
-		var err error
-		switch decision {
-		case strategy.Hit:
-			err = g.Hit()
-		case strategy.Stand:
-			err = g.Stand()
-		case strategy.DoubleDown:
-			err = g.Double()
-		case strategy.Split:
-			err = g.Split()
-		default:
-			writeError(w, http.StatusBadRequest, "INVALID_MOVE", "Unsupported move")
-			return
-		}
+		err := g.ApplyMove(decision)
 
 		if err != nil {
-			if errors.Is(err, playerpkg.ErrInvalidMove) || errors.Is(err, playerpkg.ErrInvalidSplit) {
+			if errors.Is(err, game.ErrInvalidMove) || errors.Is(err, game.ErrInvalidSplit) {
 				writeError(w, http.StatusBadRequest, "INVALID_MOVE", err.Error())
 				return
 			}
-			if errors.Is(err, playerpkg.ErrNoActiveHand) {
+			if errors.Is(err, game.ErrNoActiveHand) {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", err.Error())
 				return
 			}
 			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to apply decision")
 			return
-		}
-
-		roundComplete := !player.CanMove() && len(player.UnresolvedHands) == 0
-
-		if roundComplete {
-			if g.Dealer != nil && g.Dealer.Hand != nil && len(g.Dealer.Hand.Cards) > 0 {
-				for g.Dealer.Hand.Value() < 17 {
-					g.Dealer.Hand.AddCard(g.DrawCard())
-				}
-			}
-			g.RoundState = game.RoundStateComplete
-		} else {
-			g.RoundState = game.RoundStateActive
 		}
 
 		counts := make(map[string]int)
@@ -158,20 +124,5 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(resp)
-	}
-}
-
-func isValidMove(playerHand *hand.Hand, decision strategy.Decision) bool {
-	switch decision {
-	case strategy.Hit:
-		return !playerHand.IsBust() && playerHand.Value() < 21
-	case strategy.Stand:
-		return !playerHand.IsBust()
-	case strategy.DoubleDown:
-		return len(playerHand.Cards) == 2 && !playerHand.IsBust()
-	case strategy.Split:
-		return playerHand.CanSplit()
-	default:
-		return false
 	}
 }

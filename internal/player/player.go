@@ -24,6 +24,12 @@ func NewPlayer() *Player {
 	}
 }
 
+func (p *Player) RefreshHand(newHand *hand.Hand) {
+	p.ActiveHand = newHand
+	p.UnresolvedHands = nil
+	p.ResolvedHands = nil
+}
+
 func (p *Player) CanMove() bool {
 	if p.ActiveHand == nil || p.ActiveHand.IsEmpty() || p.ActiveHand.IsBust() {
 		return false

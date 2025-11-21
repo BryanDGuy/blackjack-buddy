@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"math/rand"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/hand"
 	"github.com/bryan/blackjack-buddy/internal/player"
 	"github.com/bryan/blackjack-buddy/internal/shoe"
+	"github.com/bryan/blackjack-buddy/internal/strategy"
 	"github.com/google/uuid"
 )
 
@@ -38,6 +40,12 @@ const (
 	OutcomePending   Outcome = "Pending"
 )
 
+var (
+	ErrInvalidMove  = errors.New("invalid move")
+	ErrInvalidSplit = errors.New("invalid split")
+	ErrNoActiveHand = errors.New("no active hand")
+)
+
 type Game struct {
 	ID         string
 	Shoe       shoe.Shoe
@@ -58,68 +66,114 @@ func NewGame(p *player.Player, dealer *dealer.Dealer) *Game {
 	}
 }
 
-func (g *Game) DrawCard() card.Card {
+func (g *Game) StartRound() {
+	if g.Player == nil || g.Dealer == nil {
+		return
+	}
+
 	if len(g.Shoe.Cards) < reshuffleThreshold {
 		g.Shoe = generateShuffledShoe()
 	}
+
+	g.RoundState = RoundStateActive
+	g.Player.RefreshHand(hand.NewHand([]card.Card{g.drawCard(), g.drawCard()}))
+	g.Dealer.RefreshHand(hand.NewHand([]card.Card{g.drawCard()}))
+	g.Outcomes = nil
+}
+
+func (g *Game) ApplyMove(move strategy.Decision) error {
+	if g.Player == nil || g.Player.ActiveHand == nil || g.Player.ActiveHand.IsEmpty() {
+		return ErrNoActiveHand
+	}
+
+	var (
+		isPlayerHandResolved bool  = false
+		err                  error = nil
+	)
+
+	switch move {
+	case strategy.Hit:
+		isPlayerHandResolved = g.hit()
+	case strategy.Stand:
+		isPlayerHandResolved = g.stand()
+	case strategy.DoubleDown:
+		isPlayerHandResolved, err = g.double()
+	case strategy.Split:
+		isPlayerHandResolved, err = g.split()
+
+	default:
+		err = ErrInvalidMove
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if isPlayerHandResolved {
+		g.markPlayerHandAsResolved()
+
+		if len(g.Player.UnresolvedHands) > 0 {
+			g.activateNextHand()
+			g.RoundState = RoundStateActive
+		} else {
+			g.completeDealerHand()
+			g.setOutcomes()
+			g.RoundState = RoundStateComplete
+		}
+	} else {
+		g.RoundState = RoundStateActive
+	}
+
+	return nil
+}
+
+func (g *Game) drawCard() card.Card {
 	return g.Shoe.Draw()
 }
 
-func (g *Game) Hit() error {
-	if g.Player == nil || g.Player.ActiveHand == nil || g.Player.ActiveHand.IsEmpty() {
-		return player.ErrNoActiveHand
-	}
-
-	g.Player.ActiveHand.AddCard(g.DrawCard())
+func (g *Game) hit() bool {
+	g.Player.ActiveHand.AddCard(g.drawCard())
 
 	if g.Player.ActiveHand.IsBust() {
-		g.completeAndAdvance()
-		return nil
+		return true
 	}
 
 	if g.Player.ActiveHand.Value() == 21 {
-		g.completeAndAdvance()
-		return nil
+		return true
 	}
 
-	return nil
+	return false
 }
 
-func (g *Game) Stand() error {
-	if g.Player == nil || g.Player.ActiveHand == nil || g.Player.ActiveHand.IsEmpty() {
-		return player.ErrNoActiveHand
+func (g *Game) stand() bool {
+	return true
+}
+
+func (g *Game) double() (bool, error) {
+	if len(g.Player.ActiveHand.Cards) != 2 {
+		return false, ErrInvalidMove
 	}
 
-	g.completeAndAdvance()
-	return nil
+	g.Player.ActiveHand.AddCard(g.drawCard())
+	return true, nil
 }
 
-func (g *Game) Double() error {
-	if g.Player == nil || g.Player.ActiveHand == nil || len(g.Player.ActiveHand.Cards) != 2 {
-		return player.ErrInvalidMove
-	}
-
-	g.Player.ActiveHand.AddCard(g.DrawCard())
-	g.completeAndAdvance()
-	return nil
-}
-
-func (g *Game) Split() error {
-	if g.Player == nil || g.Player.ActiveHand == nil || len(g.Player.ActiveHand.Cards) != 2 {
-		return player.ErrInvalidMove
+func (g *Game) split() (bool, error) {
+	if len(g.Player.ActiveHand.Cards) != 2 {
+		return false, ErrInvalidMove
 	}
 
 	if !g.Player.ActiveHand.CanSplit() {
-		return player.ErrInvalidSplit
+		return false, ErrInvalidSplit
 	}
 
-	first := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[0], g.DrawCard()})
-	second := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[1], g.DrawCard()})
+	first := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[0], g.drawCard()})
+	second := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[1], g.drawCard()})
 
 	g.Player.ActiveHand = first
 	g.Player.UnresolvedHands = append([]*hand.Hand{second}, g.Player.UnresolvedHands...)
 
-	return nil
+	return false, nil
 }
 
 func generateShuffledShoe() shoe.Shoe {
@@ -137,21 +191,7 @@ func generateShuffledShoe() shoe.Shoe {
 	return s
 }
 
-func (g *Game) completeAndAdvance() {
-	if g.Player == nil || g.Player.ActiveHand == nil {
-		return
-	}
-
-	g.completePlayerHand()
-
-	if len(g.Player.UnresolvedHands) > 0 {
-		g.activateNextHand()
-	} else {
-		g.setOutcomes()
-	}
-}
-
-func (g *Game) completePlayerHand() {
+func (g *Game) markPlayerHandAsResolved() {
 	activeHandCardsCopy := make([]card.Card, len(g.Player.ActiveHand.Cards))
 	copy(activeHandCardsCopy, g.Player.ActiveHand.Cards)
 
@@ -164,6 +204,16 @@ func (g *Game) activateNextHand() {
 	copy(firstUnresolvedHandCardsCopy, g.Player.UnresolvedHands[0].Cards)
 	g.Player.ActiveHand = hand.NewHand(firstUnresolvedHandCardsCopy)
 	g.Player.UnresolvedHands = g.Player.UnresolvedHands[1:]
+}
+
+func (g *Game) completeDealerHand() {
+	if g.Dealer == nil || g.Dealer.Hand == nil {
+		return
+	}
+
+	for g.Dealer.Hand.Value() < 17 {
+		g.Dealer.Hand.AddCard(g.drawCard())
+	}
 }
 
 func (g *Game) setOutcomes() {

@@ -13,3 +13,7 @@ func NewDealer() *Dealer {
 		Hand: nil,
 	}
 }
+
+func (d *Dealer) RefreshHand(newHand *hand.Hand) {
+	d.Hand = newHand
+}
