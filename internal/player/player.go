@@ -11,16 +11,16 @@ var ErrInvalidSplit = errors.New("invalid split")
 var ErrNoActiveHand = errors.New("no active hand")
 
 type Player struct {
-	ActiveHand     *hand.Hand
-	InactiveHands  []*hand.Hand
-	CompletedHands []*hand.Hand
+	ActiveHand      *hand.Hand
+	UnresolvedHands []*hand.Hand
+	ResolvedHands   []*hand.Hand
 }
 
 func NewPlayer() *Player {
 	return &Player{
-		ActiveHand:     nil,
-		InactiveHands:  nil,
-		CompletedHands: nil,
+		ActiveHand:      nil,
+		UnresolvedHands: nil,
+		ResolvedHands:   nil,
 	}
 }
 

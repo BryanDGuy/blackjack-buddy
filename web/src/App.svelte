@@ -9,8 +9,8 @@
   let playerCards: string[] = [];
   let dealerCard = '';
   let dealerCards: string[] = [];
-  let inactiveHands: string[][] = [];
-  let completedHands: string[][] = [];
+  let unresolvedHands: string[][] = [];
+  let resolvedHands: string[][] = [];
   let correct = 0;
   let total = 0;
   let shoeState: { totalCards: number; rankCounts: Record<string, number> } = { totalCards: 0, rankCounts: {} };
@@ -55,8 +55,8 @@
       playerCards = data.playerCards;
       dealerCard = data.dealerCard;
       dealerCards = dealerCard ? [dealerCard] : [];
-      inactiveHands = [];
-      completedHands = [];
+      unresolvedHands = [];
+      resolvedHands = [];
       outcomes = [];
       roundState = 'active';
       shoeState = data.shoeState;
@@ -89,8 +89,8 @@
       total += 1;
       roundState = result.roundState;
       playerCards = result.activeHand;
-      inactiveHands = result.inactiveHands;
-      completedHands = result.completedHands || [];
+      unresolvedHands = result.unresolvedHands;
+      resolvedHands = result.resolvedHands || [];
       outcomes = result.outcomes;
       shoeState = result.shoeState;
 
@@ -195,16 +195,16 @@
           {#each playerCards as card, index}
             <div class="card" data-index={index}>{card}</div>
           {/each}
-        {:else if roundState === 'complete' && completedHands.length === 1}
-          {#each completedHands[0] as card, index}
+        {:else if roundState === 'complete' && resolvedHands.length === 1}
+          {#each resolvedHands[0] as card, index}
             <div class="card" data-index={index}>{card}</div>
           {/each}
         {/if}
       </div>
     </div>
-    {#if inactiveHands.length > 0}
+    {#if unresolvedHands.length > 0}
       <div class="inactive-hands">
-        {#each inactiveHands as hand, handIndex}
+        {#each unresolvedHands as hand, handIndex}
           <div class="inactive-hand">
             <div class="label">Hand {handIndex + 1}</div>
             <div class="cards">

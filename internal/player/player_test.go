@@ -15,11 +15,11 @@ func TestNewPlayer(t *testing.T) {
 	if p.ActiveHand != nil {
 		t.Error("NewPlayer() ActiveHand should be nil")
 	}
-	if p.InactiveHands != nil {
-		t.Error("NewPlayer() InactiveHands should be nil")
+	if p.UnresolvedHands != nil {
+		t.Error("NewPlayer() UnresolvedHands should be nil")
 	}
-	if p.CompletedHands != nil {
-		t.Error("NewPlayer() CompletedHands should be nil")
+	if p.ResolvedHands != nil {
+		t.Error("NewPlayer() ResolvedHands should be nil")
 	}
 }
 

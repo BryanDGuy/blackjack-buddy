@@ -37,8 +37,8 @@ func TestGame_Hit(t *testing.T) {
 				t.Errorf("Hit() should add one card, got %d cards, want 3", len(g.Player.ActiveHand.Cards))
 			}
 		} else {
-			if len(g.Player.CompletedHands) == 0 {
-				t.Error("Hit() should complete hand if bust or 21, but no completed hands found")
+			if len(g.Player.ResolvedHands) == 0 {
+				t.Error("Hit() should complete hand if bust or 21, but no resolved hands found")
 			}
 		}
 	})
@@ -59,8 +59,8 @@ func TestGame_Stand(t *testing.T) {
 		t.Error("Stand() should complete hand")
 	}
 
-	if len(g.Player.CompletedHands) != 1 {
-		t.Errorf("Stand() should have 1 completed hand, got %d", len(g.Player.CompletedHands))
+	if len(g.Player.ResolvedHands) != 1 {
+		t.Errorf("Stand() should have 1 resolved hand, got %d", len(g.Player.ResolvedHands))
 	}
 }
 
@@ -90,12 +90,12 @@ func TestGame_Double(t *testing.T) {
 		t.Error("Double() should complete hand")
 	}
 
-	if len(g.Player.CompletedHands) != 1 {
-		t.Errorf("Double() should have 1 completed hand, got %d", len(g.Player.CompletedHands))
+	if len(g.Player.ResolvedHands) != 1 {
+		t.Errorf("Double() should have 1 resolved hand, got %d", len(g.Player.ResolvedHands))
 	}
 
-	if len(g.Player.CompletedHands[0].Cards) != 3 {
-		t.Errorf("Double() should have 3 cards in completed hand, got %d", len(g.Player.CompletedHands[0].Cards))
+	if len(g.Player.ResolvedHands[0].Cards) != 3 {
+		t.Errorf("Double() should have 3 cards in resolved hand, got %d", len(g.Player.ResolvedHands[0].Cards))
 	}
 }
 
@@ -154,12 +154,12 @@ func TestGame_Split(t *testing.T) {
 		t.Errorf("Split() active hand should have 2 cards, got %d", len(g.Player.ActiveHand.Cards))
 	}
 
-	if len(g.Player.InactiveHands) != 1 {
-		t.Errorf("Split() should have 1 inactive hand, got %d", len(g.Player.InactiveHands))
+	if len(g.Player.UnresolvedHands) != 1 {
+		t.Errorf("Split() should have 1 unresolved hand, got %d", len(g.Player.UnresolvedHands))
 	}
 
-	if len(g.Player.InactiveHands[0].Cards) != 2 {
-		t.Errorf("Split() inactive hand should have 2 cards, got %d", len(g.Player.InactiveHands[0].Cards))
+	if len(g.Player.UnresolvedHands[0].Cards) != 2 {
+		t.Errorf("Split() unresolved hand should have 2 cards, got %d", len(g.Player.UnresolvedHands[0].Cards))
 	}
 }
 
@@ -204,10 +204,10 @@ func TestGame_Split_InvalidMove(t *testing.T) {
 }
 
 func TestGame_completeAndAdvance(t *testing.T) {
-	t.Run("advance to inactive hand", func(t *testing.T) {
+	t.Run("advance to unresolved hand", func(t *testing.T) {
 		p := player.NewPlayer()
 		p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-		p.InactiveHands = []*hand.Hand{
+		p.UnresolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Nine), card.NewCard(card.Eight)}),
 		}
 
@@ -218,16 +218,16 @@ func TestGame_completeAndAdvance(t *testing.T) {
 			t.Fatal("completeAndAdvance() should have active hand after advancing")
 		}
 
-		if len(g.Player.CompletedHands) != 1 {
-			t.Errorf("completeAndAdvance() should have 1 completed hand, got %d", len(g.Player.CompletedHands))
+		if len(g.Player.ResolvedHands) != 1 {
+			t.Errorf("completeAndAdvance() should have 1 resolved hand, got %d", len(g.Player.ResolvedHands))
 		}
 
-		if len(g.Player.InactiveHands) != 0 {
-			t.Errorf("completeAndAdvance() should have 0 inactive hands, got %d", len(g.Player.InactiveHands))
+		if len(g.Player.UnresolvedHands) != 0 {
+			t.Errorf("completeAndAdvance() should have 0 unresolved hands, got %d", len(g.Player.UnresolvedHands))
 		}
 	})
 
-	t.Run("no inactive hands", func(t *testing.T) {
+	t.Run("no unresolved hands", func(t *testing.T) {
 		p := player.NewPlayer()
 		p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 
@@ -235,11 +235,11 @@ func TestGame_completeAndAdvance(t *testing.T) {
 		g.completeAndAdvance()
 
 		if g.Player.ActiveHand != nil {
-			t.Error("completeAndAdvance() should not have active hand when no inactive hands")
+			t.Error("completeAndAdvance() should not have active hand when no unresolved hands")
 		}
 
-		if len(g.Player.CompletedHands) != 1 {
-			t.Errorf("completeAndAdvance() should have 1 completed hand, got %d", len(g.Player.CompletedHands))
+		if len(g.Player.ResolvedHands) != 1 {
+			t.Errorf("completeAndAdvance() should have 1 resolved hand, got %d", len(g.Player.ResolvedHands))
 		}
 	})
 }

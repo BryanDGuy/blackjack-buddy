@@ -92,15 +92,13 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			return
 		}
 
-		roundComplete := !player.CanMove() && len(player.InactiveHands) == 0
+		roundComplete := !player.CanMove() && len(player.UnresolvedHands) == 0
 
 		if roundComplete {
 			if g.Dealer != nil && g.Dealer.Hand != nil && len(g.Dealer.Hand.Cards) > 0 {
 				for g.Dealer.Hand.Value() < 17 {
 					g.Dealer.Hand.AddCard(g.DrawCard())
 				}
-				outcomes := g.DetermineOutcome()
-				g.UpdateOutcomes(outcomes)
 			}
 			g.RoundState = game.RoundStateComplete
 		} else {
@@ -115,14 +113,14 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			activeHand = helpers.CardsToStrings(player.ActiveHand.Cards)
 		}
 
-		inactiveHands := make([][]string, len(player.InactiveHands))
-		for i, h := range player.InactiveHands {
-			inactiveHands[i] = helpers.CardsToStrings(h.Cards)
+		unresolvedHands := make([][]string, len(player.UnresolvedHands))
+		for i, h := range player.UnresolvedHands {
+			unresolvedHands[i] = helpers.CardsToStrings(h.Cards)
 		}
 
-		completedHands := make([][]string, len(player.CompletedHands))
-		for i, h := range player.CompletedHands {
-			completedHands[i] = helpers.CardsToStrings(h.Cards)
+		resolvedHands := make([][]string, len(player.ResolvedHands))
+		for i, h := range player.ResolvedHands {
+			resolvedHands[i] = helpers.CardsToStrings(h.Cards)
 		}
 
 		dealerCards := []string{}
@@ -131,23 +129,23 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 		}
 
 		resp := struct {
-			RoundState     string         `json:"roundState"`
-			ActiveHand     []string       `json:"activeHand"`
-			InactiveHands  [][]string     `json:"inactiveHands"`
-			CompletedHands [][]string     `json:"completedHands"`
-			DealerCards    []string       `json:"dealerCards"`
-			Outcomes       []game.Outcome `json:"outcomes"`
-			ShoeState      struct {
+			RoundState      string         `json:"roundState"`
+			ActiveHand      []string       `json:"activeHand"`
+			UnresolvedHands [][]string     `json:"unresolvedHands"`
+			ResolvedHands   [][]string     `json:"resolvedHands"`
+			DealerCards     []string       `json:"dealerCards"`
+			Outcomes        []game.Outcome `json:"outcomes"`
+			ShoeState       struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`
 			} `json:"shoeState"`
 		}{
-			RoundState:     string(g.RoundState),
-			ActiveHand:     activeHand,
-			InactiveHands:  inactiveHands,
-			CompletedHands: completedHands,
-			DealerCards:    dealerCards,
-			Outcomes:       g.Outcomes,
+			RoundState:      string(g.RoundState),
+			ActiveHand:      activeHand,
+			UnresolvedHands: unresolvedHands,
+			ResolvedHands:   resolvedHands,
+			DealerCards:     dealerCards,
+			Outcomes:        g.Outcomes,
 			ShoeState: struct {
 				TotalCards int            `json:"totalCards"`
 				RankCounts map[string]int `json:"rankCounts"`

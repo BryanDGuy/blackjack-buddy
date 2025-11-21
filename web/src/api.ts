@@ -15,8 +15,8 @@ export interface MoveRequest {
 export interface MoveResponse {
   roundState: string;
   activeHand: string[];
-  inactiveHands: string[][];
-  completedHands: string[][];
+  unresolvedHands: string[][];
+  resolvedHands: string[][];
   dealerCards: string[];
   outcomes: string[];
   shoeState: { totalCards: number; rankCounts: Record<string, number> };

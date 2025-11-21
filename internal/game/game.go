@@ -1,9 +1,7 @@
 package game
 
 import (
-	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
@@ -58,21 +56,6 @@ func NewGame(p *player.Player, dealer *dealer.Dealer) *Game {
 		Dealer:     dealer,
 		Outcomes:   nil,
 	}
-}
-
-func generateShuffledShoe() shoe.Shoe {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	decks := make([]deck.Deck, 0, decksInShoe)
-	for range decksInShoe {
-		d := deck.NewDeck(rng)
-		d.Shuffle(rng)
-		decks = append(decks, d)
-	}
-
-	s := shoe.NewShoe(decks)
-	(&s).Shuffle(rng)
-
-	return s
 }
 
 func (g *Game) DrawCard() card.Card {
@@ -134,9 +117,24 @@ func (g *Game) Split() error {
 	second := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[1], g.DrawCard()})
 
 	g.Player.ActiveHand = first
-	g.Player.InactiveHands = append([]*hand.Hand{second}, g.Player.InactiveHands...)
+	g.Player.UnresolvedHands = append([]*hand.Hand{second}, g.Player.UnresolvedHands...)
 
 	return nil
+}
+
+func generateShuffledShoe() shoe.Shoe {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	decks := make([]deck.Deck, 0, decksInShoe)
+	for range decksInShoe {
+		d := deck.NewDeck(rng)
+		d.Shuffle(rng)
+		decks = append(decks, d)
+	}
+
+	s := shoe.NewShoe(decks)
+	(&s).Shuffle(rng)
+
+	return s
 }
 
 func (g *Game) completeAndAdvance() {
@@ -144,29 +142,40 @@ func (g *Game) completeAndAdvance() {
 		return
 	}
 
-	activeHandCardsCopy := make([]card.Card, len(g.Player.ActiveHand.Cards))
-	copy(activeHandCardsCopy, g.Player.ActiveHand.Cards)
+	g.completePlayerHand()
 
-	g.Player.CompletedHands = append(g.Player.CompletedHands, hand.NewHand(activeHandCardsCopy))
-	g.Player.ActiveHand = nil
-
-	if len(g.Player.InactiveHands) > 0 {
-		firstInactiveHandCardsCopy := make([]card.Card, len(g.Player.InactiveHands[0].Cards))
-		copy(firstInactiveHandCardsCopy, g.Player.InactiveHands[0].Cards)
-		g.Player.ActiveHand = hand.NewHand(firstInactiveHandCardsCopy)
-		g.Player.InactiveHands = g.Player.InactiveHands[1:]
+	if len(g.Player.UnresolvedHands) > 0 {
+		g.activateNextHand()
+	} else {
+		g.setOutcomes()
 	}
 }
 
-func (g *Game) DetermineOutcome() []Outcome {
+func (g *Game) completePlayerHand() {
+	activeHandCardsCopy := make([]card.Card, len(g.Player.ActiveHand.Cards))
+	copy(activeHandCardsCopy, g.Player.ActiveHand.Cards)
+
+	g.Player.ResolvedHands = append(g.Player.ResolvedHands, hand.NewHand(activeHandCardsCopy))
+	g.Player.ActiveHand = nil
+}
+
+func (g *Game) activateNextHand() {
+	firstUnresolvedHandCardsCopy := make([]card.Card, len(g.Player.UnresolvedHands[0].Cards))
+	copy(firstUnresolvedHandCardsCopy, g.Player.UnresolvedHands[0].Cards)
+	g.Player.ActiveHand = hand.NewHand(firstUnresolvedHandCardsCopy)
+	g.Player.UnresolvedHands = g.Player.UnresolvedHands[1:]
+}
+
+func (g *Game) setOutcomes() {
 	if g.Dealer == nil || g.Player == nil || g.Dealer.Hand == nil {
-		return nil
+		g.Outcomes = []Outcome{}
+		return
 	}
 
-	completedHands := g.Player.CompletedHands
-	results := make([]Outcome, len(completedHands))
+	resolvedHands := g.Player.ResolvedHands
+	results := make([]Outcome, len(resolvedHands))
 
-	for i, playerHand := range completedHands {
+	for i, playerHand := range resolvedHands {
 		switch {
 		case playerHand.IsBust():
 			results[i] = OutcomeBust
@@ -187,34 +196,5 @@ func (g *Game) DetermineOutcome() []Outcome {
 		}
 	}
 
-	return results
-}
-
-func (g *Game) UpdateOutcomes(newOutcomes []Outcome) {
-	for i := range g.Outcomes {
-		if g.Outcomes[i] == OutcomeNone && i < len(newOutcomes) {
-			g.Outcomes[i] = newOutcomes[i]
-		}
-	}
-
-	for i := len(g.Outcomes); i < len(newOutcomes); i++ {
-		g.Outcomes = append(g.Outcomes, newOutcomes[i])
-	}
-}
-
-func (g *Game) FormatOutcomes() string {
-	if len(g.Outcomes) == 0 {
-		return ""
-	}
-
-	parts := make([]string, 0, len(g.Outcomes))
-	for i, outcome := range g.Outcomes {
-		label := string(outcome)
-		if label == "" {
-			label = string(OutcomePending)
-		}
-		parts = append(parts, fmt.Sprintf("Hand%d %s", i+1, label))
-	}
-
-	return strings.Join(parts, " | ")
+	g.Outcomes = results
 }

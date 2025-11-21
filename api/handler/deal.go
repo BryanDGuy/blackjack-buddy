@@ -40,8 +40,8 @@ func NewDeal(store *store.SessionStore) http.HandlerFunc {
 
 		player := g.Player
 		player.ActiveHand = hand.NewHand([]card.Card{g.DrawCard(), g.DrawCard()})
-		player.InactiveHands = nil
-		player.CompletedHands = nil
+		player.UnresolvedHands = nil
+		player.ResolvedHands = nil
 		g.Dealer.Hand = hand.NewHand([]card.Card{g.DrawCard()})
 		g.Outcomes = nil
 		g.RoundState = game.RoundStateActive
