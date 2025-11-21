@@ -123,43 +123,15 @@ func TestGame_ApplyMove_Double(t *testing.T) {
 }
 
 func TestGame_ApplyMove_Double_InvalidMove(t *testing.T) {
-	tests := []struct {
-		name        string
-		initialHand []card.Card
-		wantErr     error
-	}{
-		{
-			name:        "no active hand",
-			initialHand: nil,
-			wantErr:     ErrNoActiveHand,
-		},
-		{
-			name:        "more than 2 cards",
-			initialHand: []card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven), card.NewCard(card.Two)},
-			wantErr:     ErrInvalidMove,
-		},
-		{
-			name:        "single card",
-			initialHand: []card.Card{card.NewCard(card.Ten)},
-			wantErr:     ErrInvalidMove,
-		},
-	}
+	t.Run("no active hand", func(t *testing.T) {
+		p := player.NewPlayer()
+		g := NewGame(p, dealer.NewDealer())
+		err := g.ApplyMove(strategy.DoubleDown)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := player.NewPlayer()
-			if tt.initialHand != nil {
-				p.ActiveHand = hand.NewHand(tt.initialHand)
-			}
-
-			g := NewGame(p, dealer.NewDealer())
-			err := g.ApplyMove(strategy.DoubleDown)
-
-			if err != tt.wantErr {
-				t.Errorf("Double() error = %v, want %v", err, tt.wantErr)
-			}
-		})
-	}
+		if err != ErrNoActiveHand {
+			t.Errorf("Double() error = %v, want %v", err, ErrNoActiveHand)
+		}
+	})
 }
 
 func TestGame_ApplyMove_Split(t *testing.T) {
@@ -204,7 +176,7 @@ func TestGame_ApplyMove_Split_InvalidMove(t *testing.T) {
 		{
 			name:        "more than 2 cards",
 			initialHand: []card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven), card.NewCard(card.Two)},
-			wantErr:     ErrInvalidMove,
+			wantErr:     ErrInvalidSplit,
 		},
 		{
 			name:        "cannot split different ranks",

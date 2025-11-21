@@ -100,7 +100,6 @@ func (g *Game) ApplyMove(move strategy.Decision) error {
 		isPlayerHandResolved, err = g.double()
 	case strategy.Split:
 		isPlayerHandResolved, err = g.split()
-
 	default:
 		err = ErrInvalidMove
 	}
@@ -143,19 +142,11 @@ func (g *Game) stand() bool {
 }
 
 func (g *Game) double() (bool, error) {
-	if len(g.Player.ActiveHand.Cards) != 2 {
-		return false, ErrInvalidMove
-	}
-
 	g.Player.ActiveHand.AddCard(g.shoe.Draw())
 	return true, nil
 }
 
 func (g *Game) split() (bool, error) {
-	if len(g.Player.ActiveHand.Cards) != 2 {
-		return false, ErrInvalidMove
-	}
-
 	if !g.Player.ActiveHand.CanSplit() {
 		return false, ErrInvalidSplit
 	}
