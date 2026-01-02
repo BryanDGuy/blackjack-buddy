@@ -11,7 +11,7 @@ API_DIR=api
 all: build
 
 ui-install:
-	@test -d $(WEB_DIR)/node_modules || npm install --prefix $(WEB_DIR)
+	@test -d $(WEB_DIR)/node_modules || npm ci --prefix $(WEB_DIR)
 
 ui-build: ui-install
 	npm run build --prefix $(WEB_DIR)
