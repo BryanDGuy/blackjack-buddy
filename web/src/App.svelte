@@ -28,9 +28,10 @@
   $: canDecide = roundState === 'active' && !locked && !busy && !hintLoading && !!hint;
   
   let hintKey = '';
+  let hintGeneration = 0;
   $: {
     if (!busy && roundState === 'active' && !locked) {
-      const newKey = `${playerCards.join(',')}-${dealerCard}`;
+      const newKey = `${hintGeneration}-${playerCards.join(',')}-${dealerCard}`;
       if (newKey !== hintKey && playerCards.length && dealerCard) {
         hintKey = newKey;
         updateHint(newKey);
@@ -48,8 +49,14 @@
     hintLoading = true;
     const nextHint = await getHint();
     if (hintKey === key) {
-      hint = nextHint;
       hintLoading = false;
+      if (nextHint) {
+        hint = nextHint;
+      } else {
+        locked = true;
+        nextVisible = true;
+        resultText = 'Hint unavailable. Start next round.';
+      }
     }
   }
 
@@ -64,6 +71,7 @@
       roundState = 'active';
       hint = '';
       hintKey = '';
+      hintGeneration += 1;
       resultText = 'Result: -';
       resultClass = 'result';
       outcomeText = 'Outcome: -';
@@ -94,6 +102,7 @@
       playerCards = result.activeHand;
       unresolvedHands = result.unresolvedHands;
       resolvedHands = result.resolvedHands || [];
+      hintGeneration += 1;
 
       if (result.dealerCards.length > 0) {
         dealerCards = result.dealerCards;
@@ -138,6 +147,7 @@
     try {
       if (roundState === 'active') {
         await abandonRound();
+        roundState = 'none';
       }
       await handleLoadDeal();
     } catch (err) {
