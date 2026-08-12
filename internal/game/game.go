@@ -189,20 +189,12 @@ func generateShuffledShoe() shoe.Shoe {
 }
 
 func (g *Game) markPlayerHandAsResolved() {
-	activeHandCardsCopy := make([]card.Card, len(g.Player.ActiveHand.Cards))
-	copy(activeHandCardsCopy, g.Player.ActiveHand.Cards)
-
-	resolvedHand := hand.NewHand(activeHandCardsCopy)
-	resolvedHand.FromSplit = g.Player.ActiveHand.FromSplit
-	g.Player.ResolvedHands = append(g.Player.ResolvedHands, resolvedHand)
+	g.Player.ResolvedHands = append(g.Player.ResolvedHands, g.Player.ActiveHand)
 	g.Player.ActiveHand = nil
 }
 
 func (g *Game) activateNextHand() {
-	firstUnresolvedHandCardsCopy := make([]card.Card, len(g.Player.UnresolvedHands[0].Cards))
-	copy(firstUnresolvedHandCardsCopy, g.Player.UnresolvedHands[0].Cards)
-	g.Player.ActiveHand = hand.NewHand(firstUnresolvedHandCardsCopy)
-	g.Player.ActiveHand.FromSplit = g.Player.UnresolvedHands[0].FromSplit
+	g.Player.ActiveHand = g.Player.UnresolvedHands[0]
 	g.Player.UnresolvedHands = g.Player.UnresolvedHands[1:]
 }
 

@@ -6,7 +6,6 @@
   import StrategyTable from './components/StrategyTable.svelte';
 
   let playerCards: string[] = [];
-  let dealerCard = '';
   let dealerCards: string[] = [];
   let unresolvedHands: string[][] = [];
   let resolvedHands: string[][] = [];
@@ -16,23 +15,20 @@
   let resultText = 'Result: -';
   let resultClass = 'result';
   let outcomeText = 'Outcome: -';
-  let outcomeClass = 'result outcome-box';
   let roundState = 'none';
   let nextVisible = false;
   let busy = false;
-  let locked = false;
   let hintLoading = false;
 
   $: percent = total > 0 ? Math.round((correct / total) * 100) : 0;
-  $: derivedDealerCards = dealerCards.length ? dealerCards : dealerCard ? [dealerCard] : [];
-  $: canDecide = roundState === 'active' && !locked && !busy && !hintLoading && Boolean(hint);
+  $: canDecide = roundState === 'active' && !nextVisible && !busy && !hintLoading && Boolean(hint);
   
   let hintKey = '';
   let hintGeneration = 0;
   $: {
-    if (!busy && roundState === 'active' && !locked) {
-      const newKey = `${hintGeneration}-${playerCards.join(',')}-${dealerCard}`;
-      if (newKey !== hintKey && playerCards.length && dealerCard) {
+    if (!busy && roundState === 'active' && !nextVisible) {
+      const newKey = `${hintGeneration}-${playerCards.join(',')}-${dealerCards[0]}`;
+      if (newKey !== hintKey && playerCards.length && dealerCards[0]) {
         hintKey = newKey;
         updateHint(newKey);
       }
@@ -43,7 +39,7 @@
   }
   
   async function updateHint(key: string) {
-    if (!playerCards.length || !dealerCard || locked || roundState !== 'active' || busy) {
+    if (!playerCards.length || !dealerCards[0] || nextVisible || roundState !== 'active' || busy) {
       return;
     }
     hintLoading = true;
@@ -53,7 +49,6 @@
       if (nextHint) {
         hint = nextHint;
       } else {
-        locked = true;
         nextVisible = true;
         resultText = 'Hint unavailable. Start next round.';
       }
@@ -64,8 +59,7 @@
     try {
       const data = await loadDeal();
       playerCards = data.playerCards;
-      dealerCard = data.dealerCard;
-      dealerCards = dealerCard ? [dealerCard] : [];
+      dealerCards = data.dealerCard ? [data.dealerCard] : [];
       unresolvedHands = [];
       resolvedHands = [];
       roundState = 'active';
@@ -75,9 +69,7 @@
       resultText = 'Result: -';
       resultClass = 'result';
       outcomeText = 'Outcome: -';
-      outcomeClass = 'result outcome-box';
       nextVisible = false;
-      locked = false;
     } catch (err) {
       console.error('Failed to load deal:', err);
       alert(`Failed to load deal: ${err instanceof Error ? err.message : String(err)}`);
@@ -114,7 +106,6 @@
 
       resultClass = `result ${isCorrect ? 'correct' : 'incorrect'}`;
       resultText = `${isCorrect ? 'Correct' : 'Incorrect'}: ${expectedHint || decision}`;
-      outcomeClass = 'result outcome-box';
       
       if (result.outcomes.length > 0) {
         const outcomeSummary = result.outcomes.join(' | ');
@@ -125,12 +116,8 @@
 
       if (result.roundState === 'complete') {
         nextVisible = true;
-        locked = true;
       } else if (!isCorrect) {
         nextVisible = true;
-        locked = true;
-      } else {
-        nextVisible = false;
       }
     } catch (err) {
       console.error('Failed to make move:', err);
@@ -194,7 +181,7 @@
   <div class="section">
     <div class="label">Dealer Card</div>
     <div class="cards">
-      {#each derivedDealerCards as card, index}
+      {#each dealerCards as card, index}
         <div class="card" data-index={index}>{card}</div>
       {/each}
     </div>
@@ -251,7 +238,7 @@
   </div>
 
   <div class={resultClass}>{resultText}</div>
-  <div class={outcomeClass}>{outcomeText}</div>
+  <div class="result outcome-box">{outcomeText}</div>
   <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
 
   <StrategyTable />
