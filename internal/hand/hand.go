@@ -8,7 +8,8 @@ import (
 )
 
 type Hand struct {
-	Cards []card.Card
+	Cards     []card.Card
+	FromSplit bool
 }
 
 func NewHand(cards []card.Card) *Hand {

@@ -1,14 +1,67 @@
 package game
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/dealer"
+	"github.com/bryan/blackjack-buddy/internal/deck"
 	"github.com/bryan/blackjack-buddy/internal/hand"
 	"github.com/bryan/blackjack-buddy/internal/player"
+	"github.com/bryan/blackjack-buddy/internal/shoe"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
+
+func TestGame_StartRoundDealsDealerHoleCard(t *testing.T) {
+	g := NewGame(player.NewPlayer(), dealer.NewDealer())
+	g.StartRound()
+	if got := len(g.Dealer.Hand.Cards); got != 2 {
+		t.Fatalf("dealer cards = %d, want 2", got)
+	}
+}
+
+func TestGame_ApplyMoveRejectsDoubleAfterHit(t *testing.T) {
+	p := player.NewPlayer()
+	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Three), card.NewCard(card.Four)})
+	d := dealer.NewDealer()
+	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
+	g := NewGame(p, d)
+	g.shoe = shoe.NewShoe([]deck.Deck{{Cards: []card.Card{
+		card.NewCard(card.Two), card.NewCard(card.Three),
+	}}})
+
+	if err := g.ApplyMove(strategy.Hit); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.ApplyMove(strategy.DoubleDown); !errors.Is(err, ErrInvalidMove) {
+		t.Fatalf("double error = %v, want %v", err, ErrInvalidMove)
+	}
+}
+
+func TestGame_setOutcomesSplitTwentyOneIsWin(t *testing.T) {
+	p := player.NewPlayer()
+	split21 := hand.NewHand([]card.Card{card.NewCard(card.Ace), card.NewCard(card.Ten)})
+	split21.FromSplit = true
+	p.ResolvedHands = []*hand.Hand{split21}
+	d := dealer.NewDealer()
+	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Nine)})
+	g := NewGame(p, d)
+
+	g.setOutcomes()
+	if got := g.Outcomes[0]; got != OutcomeWin {
+		t.Fatalf("outcome = %q, want %q", got, OutcomeWin)
+	}
+}
+
+func TestGame_AbandonRound(t *testing.T) {
+	g := NewGame(player.NewPlayer(), dealer.NewDealer())
+	g.StartRound()
+	g.AbandonRound()
+	if g.RoundState != RoundStateComplete || g.Player.ActiveHand != nil {
+		t.Fatalf("abandoned game remains active: %#v", g)
+	}
+}
 
 func TestGame_ApplyMove_Hit(t *testing.T) {
 	t.Run("hit with empty hand", func(t *testing.T) {

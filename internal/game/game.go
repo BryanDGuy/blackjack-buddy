@@ -77,8 +77,17 @@ func (g *Game) StartRound() {
 
 	g.RoundState = RoundStateActive
 	g.Player.RefreshHand(hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()}))
-	g.Dealer.RefreshHand(hand.NewHand([]card.Card{g.shoe.Draw()}))
+	g.Dealer.RefreshHand(hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()}))
 	g.Outcomes = nil
+}
+
+func (g *Game) AbandonRound() {
+	if g.RoundState != RoundStateActive {
+		return
+	}
+	g.Player.RefreshHand(nil)
+	g.Outcomes = nil
+	g.RoundState = RoundStateComplete
 }
 
 func (g *Game) ApplyMove(move strategy.Decision) error {
@@ -142,6 +151,9 @@ func (g *Game) stand() bool {
 }
 
 func (g *Game) double() (bool, error) {
+	if len(g.Player.ActiveHand.Cards) != 2 {
+		return false, ErrInvalidMove
+	}
 	g.Player.ActiveHand.AddCard(g.shoe.Draw())
 	return true, nil
 }
@@ -153,6 +165,8 @@ func (g *Game) split() (bool, error) {
 
 	first := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[0], g.shoe.Draw()})
 	second := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[1], g.shoe.Draw()})
+	first.FromSplit = true
+	second.FromSplit = true
 
 	g.Player.ActiveHand = first
 	g.Player.UnresolvedHands = append([]*hand.Hand{second}, g.Player.UnresolvedHands...)
@@ -179,7 +193,9 @@ func (g *Game) markPlayerHandAsResolved() {
 	activeHandCardsCopy := make([]card.Card, len(g.Player.ActiveHand.Cards))
 	copy(activeHandCardsCopy, g.Player.ActiveHand.Cards)
 
-	g.Player.ResolvedHands = append(g.Player.ResolvedHands, hand.NewHand(activeHandCardsCopy))
+	resolvedHand := hand.NewHand(activeHandCardsCopy)
+	resolvedHand.FromSplit = g.Player.ActiveHand.FromSplit
+	g.Player.ResolvedHands = append(g.Player.ResolvedHands, resolvedHand)
 	g.Player.ActiveHand = nil
 }
 
@@ -187,6 +203,7 @@ func (g *Game) activateNextHand() {
 	firstUnresolvedHandCardsCopy := make([]card.Card, len(g.Player.UnresolvedHands[0].Cards))
 	copy(firstUnresolvedHandCardsCopy, g.Player.UnresolvedHands[0].Cards)
 	g.Player.ActiveHand = hand.NewHand(firstUnresolvedHandCardsCopy)
+	g.Player.ActiveHand.FromSplit = g.Player.UnresolvedHands[0].FromSplit
 	g.Player.UnresolvedHands = g.Player.UnresolvedHands[1:]
 }
 
@@ -213,7 +230,7 @@ func (g *Game) setOutcomes() {
 		switch {
 		case playerHand.IsBust():
 			results[i] = OutcomeBust
-		case len(playerHand.Cards) == 2 && playerHand.Value() == 21:
+		case !playerHand.FromSplit && len(playerHand.Cards) == 2 && playerHand.Value() == 21:
 			if g.Dealer.Hand.IsBlackjack() {
 				results[i] = OutcomePush
 			} else {
