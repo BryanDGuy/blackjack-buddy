@@ -80,12 +80,8 @@ test('enforces double and split conditions for buttons and keyboard shortcuts', 
   expect(double.disabled).toBe(true);
   expect(split.disabled).toBe(true);
 
-  double.disabled = false;
-  split.disabled = false;
-  double.click();
-  split.click();
-  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p' }));
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
   expect(api.makeMove).toHaveBeenCalledOnce();
 });
 

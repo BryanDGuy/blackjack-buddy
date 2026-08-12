@@ -25,12 +25,6 @@
   $: canDouble = canDecide && playerCards.length === 2;
   $: canSplit = canDouble && playerCards[0] === playerCards[1];
 
-  function canChoose(decision: string) {
-    if (decision === 'DOUBLE DOWN') return canDouble;
-    if (decision === 'SPLIT') return canSplit;
-    return canDecide;
-  }
-  
   let hintKey = '';
   let hintGeneration = 0;
   $: {
@@ -85,7 +79,7 @@
   }
 
   async function decide(decision: string) {
-    if (!canChoose(decision)) {
+    if (!canDecide || (decision === 'DOUBLE DOWN' && !canDouble) || (decision === 'SPLIT' && !canSplit)) {
       return;
     }
 
