@@ -1,3 +1,4 @@
+// Package handler contains HTTP handlers for blackjack games.
 package handler
 
 import (
@@ -7,10 +8,10 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/game"
 )
 
-func NewAbandon(store *store.SessionStore) http.HandlerFunc {
+func NewAbandon(sessions *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		abandoned := false
-		if !store.WithGame(r.PathValue("id"), func(g *game.Game) {
+		if !sessions.WithGame(r.PathValue("id"), func(g *game.Game) {
 			if g.RoundState != game.RoundStateActive {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 				return

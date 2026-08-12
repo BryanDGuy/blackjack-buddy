@@ -56,6 +56,7 @@ export default [
       },
       globals: {
         console: 'readonly',
+        alert: 'readonly',
         window: 'readonly',
         document: 'readonly',
         fetch: 'readonly',
@@ -88,4 +89,3 @@ export default [
     ignores: ['node_modules/**', 'dist/**', '*.config.js', '*.config.ts']
   }
 ];
-

@@ -15,7 +15,7 @@ type moveRequest struct {
 	Move string `json:"move"`
 }
 
-func NewMove(store *store.SessionStore) http.HandlerFunc {
+func NewMove(sessions *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var response struct {
 			RoundState      string         `json:"roundState"`
@@ -26,7 +26,7 @@ func NewMove(store *store.SessionStore) http.HandlerFunc {
 			Outcomes        []game.Outcome `json:"outcomes"`
 		}
 		success := false
-		if !store.WithGame(r.PathValue("id"), func(g *game.Game) {
+		if !sessions.WithGame(r.PathValue("id"), func(g *game.Game) {
 			if g.RoundState != game.RoundStateActive {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 				return

@@ -25,7 +25,7 @@
 
   $: percent = total > 0 ? Math.round((correct / total) * 100) : 0;
   $: derivedDealerCards = dealerCards.length ? dealerCards : dealerCard ? [dealerCard] : [];
-  $: canDecide = roundState === 'active' && !locked && !busy && !hintLoading && !!hint;
+  $: canDecide = roundState === 'active' && !locked && !busy && !hintLoading && Boolean(hint);
   
   let hintKey = '';
   let hintGeneration = 0;

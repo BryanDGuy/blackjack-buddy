@@ -1,3 +1,4 @@
+// Package shoe manages a combined deck shoe.
 package shoe
 
 import (
@@ -29,7 +30,7 @@ func (s *Shoe) Shuffle(rng *rand.Rand) {
 }
 
 func (s *Shoe) Draw() card.Card {
-	card := s.Cards[0]
+	drawn := s.Cards[0]
 	s.Cards = s.Cards[1:]
-	return card
+	return drawn
 }

@@ -1,3 +1,4 @@
+// Package strategy provides blackjack decisions.
 package strategy
 
 import (

@@ -1,3 +1,4 @@
+// Package card defines blackjack playing cards.
 package card
 
 type Card struct {

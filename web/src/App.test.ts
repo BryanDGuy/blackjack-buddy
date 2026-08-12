@@ -50,7 +50,7 @@ test('disables decisions and keyboard shortcuts until the current hint resolves'
   api.getHint.mockReturnValue(hint.promise);
   const { target } = mount();
   await flush();
-  const hit = [...target.querySelectorAll('button')].find(button => button.textContent?.startsWith('HIT'))!;
+  const hit = [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('HIT'))!;
   expect(hit.disabled).toBe(true);
   hit.disabled = false;
   hit.click();
@@ -70,7 +70,7 @@ test('abandons an active round before dealing after a wrong answer', async () =>
   api.abandonRound.mockReturnValue(abandon.promise);
   const { target } = mount();
   await flush();
-  const stand = [...target.querySelectorAll('button')].find(button => button.textContent?.startsWith('STAND'))!;
+  const stand = [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('STAND'))!;
   stand.click();
   await flush();
   const next = target.querySelector<HTMLButtonElement>('.next-btn')!;
@@ -89,7 +89,7 @@ test('renders every resolved split hand', async () => {
   api.makeMove.mockResolvedValue({ roundState: 'complete', activeHand: [], unresolvedHands: [], resolvedHands: [['8', '10'], ['8', '9']], dealerCards: ['6', '10', '2'], outcomes: ['Push', 'Lose'] });
   const { target } = mount();
   await flush();
-  const split = [...target.querySelectorAll('button')].find(button => button.textContent?.startsWith('SPLIT'))!;
+  const split = [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('SPLIT'))!;
   split.click();
   await flush();
   expect(target.querySelectorAll('.resolved-hand')).toHaveLength(2);
@@ -105,7 +105,7 @@ test('does not reuse a stale hint after an equal-key hand', async () => {
   api.makeMove.mockResolvedValue({ roundState: 'active', activeHand: ['10', '6'], unresolvedHands: [], resolvedHands: [], dealerCards: ['10'], outcomes: [] });
   const { target } = mount();
   await flush();
-  const hit = [...target.querySelectorAll('button')].find(button => button.textContent?.startsWith('HIT'))!;
+  const hit = [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('HIT'))!;
   hit.click();
   await flush();
   expect(api.getHint).toHaveBeenCalledTimes(2);
@@ -127,7 +127,7 @@ test('retries dealing without abandoning again after a post-abandon deal failure
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   const { target } = mount();
   await flush();
-  [...target.querySelectorAll('button')].find(button => button.textContent?.startsWith('STAND'))!.click();
+  [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('STAND'))!.click();
   await flush();
   const next = target.querySelector<HTMLButtonElement>('.next-btn')!;
   next.click();
@@ -143,7 +143,7 @@ test('locks a round with no hint and exposes Next', async () => {
   api.getHint.mockResolvedValue('');
   const { target } = mount();
   await flush();
-  const hit = [...target.querySelectorAll('button')].find(button => button.textContent?.startsWith('HIT'))!;
+  const hit = [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('HIT'))!;
   const next = target.querySelector<HTMLButtonElement>('.next-btn')!;
   expect(hit.disabled).toBe(true);
   expect(target.textContent).toContain('Hint unavailable. Start next round.');

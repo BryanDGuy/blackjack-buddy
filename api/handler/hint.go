@@ -9,13 +9,13 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-func NewHint(store *store.SessionStore, advisor *strategy.Advisor) http.HandlerFunc {
+func NewHint(sessions *store.SessionStore, advisor *strategy.Advisor) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var response struct {
 			Hint string `json:"hint"`
 		}
 		success := false
-		if !store.WithGame(r.PathValue("id"), func(g *game.Game) {
+		if !sessions.WithGame(r.PathValue("id"), func(g *game.Game) {
 			if g.RoundState != game.RoundStateActive {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 				return

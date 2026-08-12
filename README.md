@@ -10,7 +10,8 @@ Blackjack decision assistant implementing basic strategy. Minimal Go HTTP server
 - Embedded web trainer with round simulation
 - Supports hard, soft, doubles, and splits
 - Finite multi-deck shoe with card tracking and reshuffling
-- Winnings tracking with pot, bet, and round outcomes
+- Round outcome tracking across normal and split hands
+- Six decks, dealer stands on soft 17 (S17), double after split, no surrender, no insurance
 - TypeScript-based Svelte UI with component architecture
 
 ## Quick Start

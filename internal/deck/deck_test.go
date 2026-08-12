@@ -8,8 +8,7 @@ import (
 )
 
 func TestNewDeck(t *testing.T) {
-	rng := rand.New(rand.NewSource(42))
-	d := NewDeck(rng)
+	d := NewDeck()
 
 	if len(d.Cards) != 52 {
 		t.Errorf("NewDeck() created deck with %d cards, want 52", len(d.Cards))
@@ -41,8 +40,8 @@ func TestDeck_Shuffle(t *testing.T) {
 	rng1 := rand.New(rand.NewSource(42))
 	rng2 := rand.New(rand.NewSource(43))
 
-	d1 := NewDeck(rng1)
-	d2 := NewDeck(rng2)
+	d1 := NewDeck()
+	d2 := NewDeck()
 
 	d1.Shuffle(rng1)
 	d2.Shuffle(rng2)
@@ -71,8 +70,8 @@ func TestDeck_Shuffle(t *testing.T) {
 func TestDeck_Shuffle_ChangesOrder(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
 
-	d1 := NewDeck(rng)
-	d2 := NewDeck(rng)
+	d1 := NewDeck()
+	d2 := NewDeck()
 
 	d2.Shuffle(rng)
 

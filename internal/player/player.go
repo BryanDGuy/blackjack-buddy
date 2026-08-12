@@ -1,14 +1,7 @@
+// Package player manages player hands.
 package player
 
-import (
-	"errors"
-
-	"github.com/bryan/blackjack-buddy/internal/hand"
-)
-
-var ErrInvalidMove = errors.New("invalid move")
-var ErrInvalidSplit = errors.New("invalid split")
-var ErrNoActiveHand = errors.New("no active hand")
+import "github.com/bryan/blackjack-buddy/internal/hand"
 
 type Player struct {
 	ActiveHand      *hand.Hand
@@ -28,14 +21,4 @@ func (p *Player) RefreshHand(newHand *hand.Hand) {
 	p.ActiveHand = newHand
 	p.UnresolvedHands = nil
 	p.ResolvedHands = nil
-}
-
-func (p *Player) CanMove() bool {
-	if p.ActiveHand == nil || p.ActiveHand.IsEmpty() || p.ActiveHand.IsBust() {
-		return false
-	}
-	if p.ActiveHand.Value() == 21 {
-		return false
-	}
-	return true
 }

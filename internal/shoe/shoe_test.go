@@ -11,7 +11,7 @@ func TestNewShoe(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
 	decks := make([]deck.Deck, 0, 2)
 	for range 2 {
-		d := deck.NewDeck(rng)
+		d := deck.NewDeck()
 		d.Shuffle(rng)
 		decks = append(decks, d)
 	}
@@ -31,11 +31,11 @@ func TestShoe_Shuffle(t *testing.T) {
 	decks1 := make([]deck.Deck, 0, 1)
 	decks2 := make([]deck.Deck, 0, 1)
 	for range 1 {
-		d1 := deck.NewDeck(rng1)
+		d1 := deck.NewDeck()
 		d1.Shuffle(rng1)
 		decks1 = append(decks1, d1)
 
-		d2 := deck.NewDeck(rng2)
+		d2 := deck.NewDeck()
 		d2.Shuffle(rng2)
 		decks2 = append(decks2, d2)
 	}
@@ -70,7 +70,7 @@ func TestShoe_Shuffle_ChangesOrder(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
 
 	decks := make([]deck.Deck, 0, 1)
-	d := deck.NewDeck(rng)
+	d := deck.NewDeck()
 	d.Shuffle(rng)
 	decks = append(decks, d)
 
@@ -97,7 +97,7 @@ func TestShoe_Shuffle_ChangesOrder(t *testing.T) {
 func TestShoe_Draw(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
 	decks := make([]deck.Deck, 0, 1)
-	d := deck.NewDeck(rng)
+	d := deck.NewDeck()
 	d.Shuffle(rng)
 	decks = append(decks, d)
 
@@ -118,7 +118,7 @@ func TestShoe_Draw(t *testing.T) {
 func TestShoe_Draw_Multiple(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
 	decks := make([]deck.Deck, 0, 1)
-	d := deck.NewDeck(rng)
+	d := deck.NewDeck()
 	d.Shuffle(rng)
 	decks = append(decks, d)
 

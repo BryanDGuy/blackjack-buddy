@@ -1,3 +1,4 @@
+// Package game manages blackjack rounds.
 package game
 
 import (
@@ -55,12 +56,12 @@ type Game struct {
 	shoe       shoe.Shoe
 }
 
-func NewGame(p *player.Player, dealer *dealer.Dealer) *Game {
+func NewGame(p *player.Player, d *dealer.Dealer) *Game {
 	return &Game{
 		ID:         uuid.New().String(),
 		RoundState: RoundStateNone,
 		Player:     p,
-		Dealer:     dealer,
+		Dealer:     d,
 		Outcomes:   nil,
 		shoe:       generateShuffledShoe(),
 	}
@@ -96,8 +97,8 @@ func (g *Game) ApplyMove(move strategy.Decision) error {
 	}
 
 	var (
-		isPlayerHandResolved bool  = false
-		err                  error = nil
+		isPlayerHandResolved = false
+		err                  error
 	)
 
 	switch move {
@@ -108,7 +109,7 @@ func (g *Game) ApplyMove(move strategy.Decision) error {
 	case strategy.DoubleDown:
 		isPlayerHandResolved, err = g.double()
 	case strategy.Split:
-		isPlayerHandResolved, err = g.split()
+		err = g.split()
 	default:
 		err = ErrInvalidMove
 	}
@@ -158,9 +159,9 @@ func (g *Game) double() (bool, error) {
 	return true, nil
 }
 
-func (g *Game) split() (bool, error) {
+func (g *Game) split() error {
 	if !g.Player.ActiveHand.CanSplit() {
-		return false, ErrInvalidSplit
+		return ErrInvalidSplit
 	}
 
 	first := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[0], g.shoe.Draw()})
@@ -171,16 +172,14 @@ func (g *Game) split() (bool, error) {
 	g.Player.ActiveHand = first
 	g.Player.UnresolvedHands = append([]*hand.Hand{second}, g.Player.UnresolvedHands...)
 
-	return false, nil
+	return nil
 }
 
 func generateShuffledShoe() shoe.Shoe {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	decks := make([]deck.Deck, 0, decksInShoe)
 	for range decksInShoe {
-		d := deck.NewDeck(rng)
-		d.Shuffle(rng)
-		decks = append(decks, d)
+		decks = append(decks, deck.NewDeck())
 	}
 
 	s := shoe.NewShoe(decks)

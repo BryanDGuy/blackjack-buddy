@@ -10,16 +10,16 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/player"
 )
 
-func NewGame(store *store.SessionStore) http.HandlerFunc {
+func NewGame(sessions *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		g := game.NewGame(player.NewPlayer(), dealer.NewDealer())
 
-		gameId := store.Create(g)
+		gameID := sessions.Create(g)
 
 		resp := struct {
-			GameId string `json:"gameId"`
+			GameID string `json:"gameId"`
 		}{
-			GameId: gameId,
+			GameID: gameID,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

@@ -1,3 +1,4 @@
+// Package strategies implements blackjack strategy tables.
 package strategies
 
 import (

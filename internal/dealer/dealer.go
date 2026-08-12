@@ -1,3 +1,4 @@
+// Package dealer manages the dealer hand.
 package dealer
 
 import (

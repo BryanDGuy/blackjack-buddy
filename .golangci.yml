@@ -1,53 +1,27 @@
+version: "2"
 run:
-  timeout: 5m
   tests: true
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-    check-blank: false
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - style
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - paramTypeCombine
-      - unnamedResult
-  staticcheck:
-    checks: ["all"]
-  unused:
-    check-exported: false
-
 linters:
-  disable-all: true
-  enable:
-    - errcheck
-    - gocritic
-    - gofmt
-    - goimports
-    - govet
-    - ineffassign
-    - staticcheck
-    - typecheck
-    - unused
-    - unparam
-
+  default: none
+  enable: [errcheck, gocritic, govet, ineffassign, staticcheck, unparam, unused]
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
+    gocritic:
+      enabled-tags: [diagnostic, experimental, opinionated, style]
+      disabled-checks: [dupImport, ifElseChain, octalLiteral, whyNoLint, paramTypeCombine, unnamedResult]
+    staticcheck:
+      checks: [all]
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [errcheck, gocritic]
+      - path: api/handler/.*\.go
+        text: Error return value of.*is not checked
+        linters: [errcheck]
 issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gocritic
-    - path: api/handler/.*\.go
-      text: "Error return value of.*is not checked"
-      linters:
-        - errcheck
   max-issues-per-linter: 0
   max-same-issues: 0
-
+formatters:
+  enable: [gofmt, goimports]

@@ -1,3 +1,4 @@
+// Package hand models blackjack hands.
 package hand
 
 import (

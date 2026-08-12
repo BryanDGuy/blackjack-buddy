@@ -1,3 +1,4 @@
+// Package store manages in-memory game sessions.
 package store
 
 import (
@@ -32,14 +33,14 @@ func newSessionStore(now func() time.Time) *SessionStore {
 	}
 }
 
-func (s *SessionStore) Create(game *game.Game) string {
+func (s *SessionStore) Create(g *game.Game) string {
 	now := s.now()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.prune(now)
-	s.games[game.ID] = &session{game: game, lastAccess: now}
-	return game.ID
+	s.games[g.ID] = &session{game: g, lastAccess: now}
+	return g.ID
 }
 
 func (s *SessionStore) WithGame(id string, fn func(*game.Game)) bool {

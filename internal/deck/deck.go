@@ -1,3 +1,4 @@
+// Package deck constructs and shuffles card decks.
 package deck
 
 import (
@@ -12,7 +13,7 @@ type Deck struct {
 
 const cardsPerDeck = 52
 
-func NewDeck(rng *rand.Rand) Deck {
+func NewDeck() Deck {
 	cards := make([]card.Card, 0, cardsPerDeck)
 	ranks := []card.Rank{
 		card.Two, card.Three, card.Four, card.Five,
