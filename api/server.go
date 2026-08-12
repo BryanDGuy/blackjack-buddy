@@ -35,7 +35,7 @@ func (s *server) handleUI(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(data)
 }
 
-func (s *server) Start(port int) error {
+func (s *server) handler() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /api/game", handler.NewGame(s.sessionStore))
@@ -46,13 +46,17 @@ func (s *server) Start(port int) error {
 
 	fileServer := http.FileServer(http.FS(s.ui))
 	mux.Handle("/assets/", fileServer)
-	mux.HandleFunc("/", s.handleUI)
+	mux.HandleFunc("GET /{$}", s.handleUI)
+	return mux
+}
+
+func (s *server) Start(port int) error {
 
 	addr := fmt.Sprintf(":%d", port)
 
 	srv := &http.Server{
 		Addr:    addr,
-		Handler: mux,
+		Handler: s.handler(),
 	}
 
 	fmt.Printf("Server running on http://localhost%s\n", addr)
