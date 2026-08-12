@@ -41,16 +41,48 @@ func TestGame_ApplyMoveRejectsDoubleAfterHit(t *testing.T) {
 
 func TestGame_setOutcomesSplitTwentyOneIsWin(t *testing.T) {
 	p := player.NewPlayer()
-	split21 := hand.NewHand([]card.Card{card.NewCard(card.Ace), card.NewCard(card.Ten)})
-	split21.FromSplit = true
-	p.ResolvedHands = []*hand.Hand{split21}
 	d := dealer.NewDealer()
 	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Nine)})
 	g := NewGame(p, d)
+	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ace), card.NewCard(card.Ace)})
+	g.shoe = shoe.NewShoe([]deck.Deck{{Cards: []card.Card{
+		card.NewCard(card.Ten), card.NewCard(card.Ten),
+	}}})
 
-	g.setOutcomes()
-	if got := g.Outcomes[0]; got != OutcomeWin {
-		t.Fatalf("outcome = %q, want %q", got, OutcomeWin)
+	if err := g.ApplyMove(strategy.Split); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.ApplyMove(strategy.Stand); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.ApplyMove(strategy.Stand); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(g.Outcomes); got != 2 {
+		t.Fatalf("outcomes = %d, want 2", got)
+	}
+	for i, got := range g.Outcomes {
+		if got != OutcomeWin {
+			t.Fatalf("outcome %d = %q, want %q", i, got, OutcomeWin)
+		}
+	}
+}
+
+func TestGame_ApplyMoveAllowsDoubleAfterSplit(t *testing.T) {
+	p := player.NewPlayer()
+	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Eight), card.NewCard(card.Eight)})
+	d := dealer.NewDealer()
+	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
+	g := NewGame(p, d)
+	g.shoe = shoe.NewShoe([]deck.Deck{{Cards: []card.Card{
+		card.NewCard(card.Three), card.NewCard(card.Four), card.NewCard(card.Two),
+	}}})
+
+	if err := g.ApplyMove(strategy.Split); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.ApplyMove(strategy.DoubleDown); err != nil {
+		t.Fatalf("double after split error = %v, want nil", err)
 	}
 }
 
