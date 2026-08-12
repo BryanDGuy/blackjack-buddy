@@ -22,6 +22,14 @@
 
   $: percent = total > 0 ? Math.round((correct / total) * 100) : 0;
   $: canDecide = roundState === 'active' && !nextVisible && !busy && !hintLoading && Boolean(hint);
+  $: canDouble = canDecide && playerCards.length === 2;
+  $: canSplit = canDouble && playerCards[0] === playerCards[1];
+
+  function canChoose(decision: string) {
+    if (decision === 'DOUBLE DOWN') return canDouble;
+    if (decision === 'SPLIT') return canSplit;
+    return canDecide;
+  }
   
   let hintKey = '';
   let hintGeneration = 0;
@@ -77,7 +85,7 @@
   }
 
   async function decide(decision: string) {
-    if (!canDecide) {
+    if (!canChoose(decision)) {
       return;
     }
 
@@ -226,8 +234,8 @@
     <div class="buttons">
       <button on:click={() => decide('HIT')} disabled={!canDecide}>HIT (H)</button>
       <button on:click={() => decide('STAND')} disabled={!canDecide}>STAND (S)</button>
-      <button on:click={() => decide('DOUBLE DOWN')} disabled={!canDecide}>DOUBLE DOWN (D)</button>
-      <button on:click={() => decide('SPLIT')} disabled={!canDecide}>SPLIT (P)</button>
+      <button on:click={() => decide('DOUBLE DOWN')} disabled={!canDouble}>DOUBLE DOWN (D)</button>
+      <button on:click={() => decide('SPLIT')} disabled={!canSplit}>SPLIT (P)</button>
     </div>
     {#if hint}
       <div class="hint-wrap">
@@ -459,12 +467,17 @@
     transition: all 0.2s;
   }
 
-  button:hover {
+  button:not(:disabled):hover {
     background: #444;
     border-color: #777;
   }
 
-  button:active {
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  button:not(:disabled):active {
     transform: scale(0.98);
   }
 

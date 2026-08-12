@@ -62,6 +62,33 @@ test('disables decisions and keyboard shortcuts until the current hint resolves'
   expect(hit.disabled).toBe(false);
 });
 
+test('enforces double and split conditions for buttons and keyboard shortcuts', async () => {
+  api.loadDeal.mockResolvedValue({ playerCards: ['10', '6'], dealerCard: '10' });
+  api.getHint.mockResolvedValue('HIT');
+  api.makeMove.mockResolvedValue({ roundState: 'active', activeHand: ['10', '6', '2'], unresolvedHands: [], resolvedHands: [], dealerCards: ['10'], outcomes: [] });
+  const { target } = mount();
+  await flush();
+  const buttons = [...target.querySelectorAll('button')];
+  const hit = buttons.find(button => button.textContent.startsWith('HIT'))!;
+  const double = buttons.find(button => button.textContent.startsWith('DOUBLE DOWN'))!;
+  const split = buttons.find(button => button.textContent.startsWith('SPLIT'))!;
+
+  expect(double.disabled).toBe(false);
+  expect(split.disabled).toBe(true);
+  hit.click();
+  await flush();
+  expect(double.disabled).toBe(true);
+  expect(split.disabled).toBe(true);
+
+  double.disabled = false;
+  split.disabled = false;
+  double.click();
+  split.click();
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p' }));
+  expect(api.makeMove).toHaveBeenCalledOnce();
+});
+
 test('abandons an active round before dealing after a wrong answer', async () => {
   const abandon = deferred<void>();
   api.loadDeal.mockResolvedValue({ playerCards: ['10', '6'], dealerCard: '10' });
@@ -90,6 +117,7 @@ test('renders every resolved split hand', async () => {
   const { target } = mount();
   await flush();
   const split = [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('SPLIT'))!;
+  expect(split.disabled).toBe(false);
   split.click();
   await flush();
   expect(target.querySelectorAll('.resolved-hand')).toHaveLength(2);
