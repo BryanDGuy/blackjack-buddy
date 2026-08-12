@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"strings"
 
 	"github.com/bryan/blackjack-buddy/api/handler"
 	"github.com/bryan/blackjack-buddy/api/store"
@@ -39,30 +38,11 @@ func (s *server) handleUI(w http.ResponseWriter, r *http.Request) {
 func (s *server) Start(port int) error {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/game", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/game" {
-			handler.NewGame(s.sessionStore)(w, r)
-			return
-		}
-		http.NotFound(w, r)
-	})
-
-	mux.HandleFunc("/api/game/", func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		if strings.HasSuffix(path, "/deal") && r.Method == "POST" {
-			handler.NewDeal(s.sessionStore)(w, r)
-			return
-		}
-		if strings.HasSuffix(path, "/move") && r.Method == "POST" {
-			handler.NewMove(s.sessionStore)(w, r)
-			return
-		}
-		if strings.HasSuffix(path, "/hint") && r.Method == "GET" {
-			handler.NewHint(s.sessionStore, s.advisor)(w, r)
-			return
-		}
-		http.NotFound(w, r)
-	})
+	mux.HandleFunc("POST /api/game", handler.NewGame(s.sessionStore))
+	mux.HandleFunc("POST /api/game/{id}/deal", handler.NewDeal(s.sessionStore))
+	mux.HandleFunc("POST /api/game/{id}/move", handler.NewMove(s.sessionStore))
+	mux.HandleFunc("GET /api/game/{id}/hint", handler.NewHint(s.sessionStore, s.advisor))
+	mux.HandleFunc("POST /api/game/{id}/abandon", handler.NewAbandon(s.sessionStore))
 
 	fileServer := http.FileServer(http.FS(s.ui))
 	mux.Handle("/assets/", fileServer)

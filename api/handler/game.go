@@ -12,11 +12,6 @@ import (
 
 func NewGame(store *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST method is allowed")
-			return
-		}
-
 		g := game.NewGame(player.NewPlayer(), dealer.NewDealer())
 
 		gameId := store.Create(g)
