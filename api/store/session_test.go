@@ -24,25 +24,25 @@ func TestSessionStoreSerializesOneGame(t *testing.T) {
 	store := NewSessionStore()
 	g := game.NewGame(player.NewPlayer(), dealer.NewDealer())
 	store.Create(g)
+	entry := store.games[g.ID]
 	entered := make(chan struct{})
 	release := make(chan struct{})
 	done := make(chan struct{})
-	go store.WithGame(g.ID, func(*game.Game) {
-		close(entered)
-		<-release
-	})
-	<-entered
-	attempted := make(chan struct{})
 	go func() {
-		close(attempted)
-		store.WithGame(g.ID, func(*game.Game) { close(done) })
+		store.WithGame(g.ID, func(*game.Game) {
+			close(entered)
+			<-release
+		})
+		close(done)
 	}()
-	<-attempted
-	select {
-	case <-done:
-		t.Fatal("second operation entered while first held the game")
-	default:
+	<-entered
+	secondEntered := entry.mu.TryLock()
+	if secondEntered {
+		entry.mu.Unlock()
 	}
 	close(release)
 	<-done
+	if secondEntered {
+		t.Fatal("second operation entered while first held the game")
+	}
 }

@@ -68,6 +68,22 @@ func TestGame_setOutcomesSplitTwentyOneIsWin(t *testing.T) {
 	}
 }
 
+func TestGame_setOutcomesDealerBlackjackBeatsSplitTwentyOne(t *testing.T) {
+	p := player.NewPlayer()
+	splitTwentyOne := hand.NewHand([]card.Card{card.NewCard(card.Ace), card.NewCard(card.Ten)})
+	splitTwentyOne.FromSplit = true
+	p.ResolvedHands = []*hand.Hand{splitTwentyOne}
+	d := dealer.NewDealer()
+	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)})
+	g := NewGame(p, d)
+
+	g.setOutcomes()
+
+	if got := g.Outcomes[0]; got != OutcomeLose {
+		t.Fatalf("outcome = %q, want %q", got, OutcomeLose)
+	}
+}
+
 func TestGame_ApplyMoveAllowsDoubleAfterSplit(t *testing.T) {
 	p := player.NewPlayer()
 	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Eight), card.NewCard(card.Eight)})

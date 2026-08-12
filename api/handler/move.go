@@ -68,7 +68,11 @@ func NewMove(sessions *store.SessionStore) http.HandlerFunc {
 			}
 			response.DealerCards = []string{}
 			if g.Dealer != nil && g.Dealer.Hand != nil {
-				response.DealerCards = helpers.CardsToStrings(g.Dealer.Hand.Cards)
+				dealerCards := g.Dealer.Hand.Cards
+				if g.RoundState == game.RoundStateActive && len(dealerCards) > 0 {
+					dealerCards = dealerCards[:1]
+				}
+				response.DealerCards = helpers.CardsToStrings(dealerCards)
 			}
 			response.Outcomes = append([]game.Outcome(nil), g.Outcomes...)
 			success = true

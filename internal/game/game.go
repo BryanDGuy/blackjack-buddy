@@ -235,6 +235,8 @@ func (g *Game) setOutcomes() {
 			} else {
 				results[i] = OutcomeBlackjack
 			}
+		case g.Dealer.Hand.IsBlackjack():
+			results[i] = OutcomeLose
 		case g.Dealer.Hand.IsBust():
 			results[i] = OutcomeWin
 		case playerHand.Value() > g.Dealer.Hand.Value():
