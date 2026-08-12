@@ -76,6 +76,12 @@ export async function makeMove(move: string): Promise<MoveResponse> {
   return res.json();
 }
 
+export async function abandonRound(): Promise<void> {
+  if (!gameId) return;
+  const res = await fetch(`/api/game/${gameId}/abandon`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to abandon round');
+}
+
 export async function getHint(): Promise<string> {
   if (!gameId) {
     return '';

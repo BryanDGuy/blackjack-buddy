@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { KEY_BINDINGS } from './constants';
-  import { loadDeal, makeMove, getHint } from './api';
+  import { abandonRound, loadDeal, makeMove, getHint } from './api';
   import Stats from './components/Stats.svelte';
   import StrategyTable from './components/StrategyTable.svelte';
 
@@ -17,14 +17,15 @@
   let resultClass = 'result';
   let outcomeText = 'Outcome: -';
   let outcomeClass = 'result outcome-box';
-  let outcomes: string[] = [];
   let roundState = 'none';
   let nextVisible = false;
   let busy = false;
   let locked = false;
+  let hintLoading = false;
 
   $: percent = total > 0 ? Math.round((correct / total) * 100) : 0;
   $: derivedDealerCards = dealerCards.length ? dealerCards : dealerCard ? [dealerCard] : [];
+  $: canDecide = roundState === 'active' && !locked && !busy && !hintLoading && !!hint;
   
   let hintKey = '';
   $: {
@@ -32,7 +33,7 @@
       const newKey = `${playerCards.join(',')}-${dealerCard}`;
       if (newKey !== hintKey && playerCards.length && dealerCard) {
         hintKey = newKey;
-        updateHint();
+        updateHint(newKey);
       }
     } else if (roundState !== 'active') {
       hint = '';
@@ -40,11 +41,16 @@
     }
   }
   
-  async function updateHint() {
+  async function updateHint(key: string) {
     if (!playerCards.length || !dealerCard || locked || roundState !== 'active' || busy) {
       return;
     }
-    hint = await getHint();
+    hintLoading = true;
+    const nextHint = await getHint();
+    if (hintKey === key) {
+      hint = nextHint;
+      hintLoading = false;
+    }
   }
 
   async function handleLoadDeal() {
@@ -55,9 +61,9 @@
       dealerCards = dealerCard ? [dealerCard] : [];
       unresolvedHands = [];
       resolvedHands = [];
-      outcomes = [];
       roundState = 'active';
       hint = '';
+      hintKey = '';
       resultText = 'Result: -';
       resultClass = 'result';
       outcomeText = 'Outcome: -';
@@ -71,7 +77,7 @@
   }
 
   async function decide(decision: string) {
-    if (locked || busy || roundState !== 'active') {
+    if (!canDecide) {
       return;
     }
 
@@ -88,7 +94,6 @@
       playerCards = result.activeHand;
       unresolvedHands = result.unresolvedHands;
       resolvedHands = result.resolvedHands || [];
-      outcomes = result.outcomes;
 
       if (result.dealerCards.length > 0) {
         dealerCards = result.dealerCards;
@@ -130,8 +135,10 @@
       return;
     }
     busy = true;
-    locked = false;
     try {
+      if (roundState === 'active') {
+        await abandonRound();
+      }
       await handleLoadDeal();
     } catch (err) {
       console.error('Failed to start next round:', err);
@@ -154,7 +161,7 @@
       startNextRound();
       return;
     }
-    if (locked || busy) {
+    if (!canDecide) {
       return;
     }
     decide(action);
@@ -186,17 +193,21 @@
   <div class="hands-container">
     <div class="section">
       <div class="label">Your Cards</div>
-      <div class="cards">
-        {#if playerCards.length > 0}
+      {#if playerCards.length > 0}
+        <div class="cards">
           {#each playerCards as card, index}
             <div class="card" data-index={index}>{card}</div>
           {/each}
-        {:else if roundState === 'complete' && resolvedHands.length === 1}
-          {#each resolvedHands[0] as card, index}
-            <div class="card" data-index={index}>{card}</div>
-          {/each}
-        {/if}
-      </div>
+        </div>
+      {:else if roundState === 'complete'}
+        {#each resolvedHands as hand}
+          <div class="cards resolved-hand">
+            {#each hand as card, index}
+              <div class="card" data-index={index}>{card}</div>
+            {/each}
+          </div>
+        {/each}
+      {/if}
     </div>
     {#if unresolvedHands.length > 0}
       <div class="inactive-hands">
@@ -216,10 +227,10 @@
 
   <div class="buttons-section">
     <div class="buttons">
-      <button on:click={() => decide('HIT')} disabled={locked || busy}>HIT (H)</button>
-      <button on:click={() => decide('STAND')} disabled={locked || busy}>STAND (S)</button>
-      <button on:click={() => decide('DOUBLE DOWN')} disabled={locked || busy}>DOUBLE DOWN (D)</button>
-      <button on:click={() => decide('SPLIT')} disabled={locked || busy}>SPLIT (P)</button>
+      <button on:click={() => decide('HIT')} disabled={!canDecide}>HIT (H)</button>
+      <button on:click={() => decide('STAND')} disabled={!canDecide}>STAND (S)</button>
+      <button on:click={() => decide('DOUBLE DOWN')} disabled={!canDecide}>DOUBLE DOWN (D)</button>
+      <button on:click={() => decide('SPLIT')} disabled={!canDecide}>SPLIT (P)</button>
     </div>
     {#if hint}
       <div class="hint-wrap">
