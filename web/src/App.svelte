@@ -109,18 +109,8 @@
       resultClass = `result ${isCorrect ? 'correct' : 'incorrect'}`;
       resultText = `${isCorrect ? 'Correct' : 'Incorrect'}: ${expectedHint || decision}`;
       
-      if (result.outcomes.length > 0) {
-        const outcomeSummary = result.outcomes.join(' | ');
-        outcomeText = `Outcome: ${outcomeSummary}`;
-      } else {
-        outcomeText = 'Outcome: -';
-      }
-
-      if (result.roundState === 'complete') {
-        nextVisible = true;
-      } else if (!isCorrect) {
-        nextVisible = true;
-      }
+      outcomeText = result.outcomes.length ? `Outcome: ${result.outcomes.join(' | ')}` : 'Outcome: -';
+      nextVisible = result.roundState === 'complete' || !isCorrect;
     } catch (err) {
       console.error('Failed to make move:', err);
     } finally {
@@ -158,9 +148,6 @@
     event.preventDefault();
     if (action === 'NEXT') {
       startNextRound();
-      return;
-    }
-    if (!canDecide) {
       return;
     }
     decide(action);
@@ -275,21 +262,6 @@
     padding: 16px;
     background: #222;
     border-radius: 8px;
-  }
-
-  .stat {
-    text-align: center;
-  }
-
-  .stat-value {
-    font-size: 28px;
-    font-weight: bold;
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: #888;
-    margin-top: 4px;
   }
 
   .hands-container {
@@ -499,10 +471,6 @@
   .outcome-box {
     background: #222;
     border: 2px solid #555;
-    min-height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .next-btn {
@@ -510,11 +478,6 @@
     width: 100%;
     padding: 14px;
     background: #2d2d2d;
-    color: #fff;
-    border: 2px solid #555;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
     visibility: hidden;
     pointer-events: none;
     transition: background 0.2s ease;

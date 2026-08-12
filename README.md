@@ -6,7 +6,7 @@ Blackjack decision assistant implementing basic strategy. Minimal Go HTTP server
 
 ## Features
 
-- Matrix-based strategy lookup with advisor
+- Matrix-based strategy lookup
 - Embedded web trainer with round simulation
 - Supports hard, soft, doubles, and splits
 - Finite multi-deck shoe with card tracking and reshuffling

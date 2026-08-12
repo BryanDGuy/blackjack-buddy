@@ -2,6 +2,7 @@
 package game
 
 import (
+	cryptorand "crypto/rand"
 	"errors"
 	"math/rand"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/player"
 	"github.com/bryan/blackjack-buddy/internal/shoe"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
-	"github.com/google/uuid"
 )
 
 const (
@@ -32,13 +32,11 @@ const (
 type Outcome string
 
 const (
-	OutcomeNone      Outcome = ""
 	OutcomeBust      Outcome = "Bust"
 	OutcomeWin       Outcome = "Win"
 	OutcomeLose      Outcome = "Lose"
 	OutcomePush      Outcome = "Push"
 	OutcomeBlackjack Outcome = "Blackjack"
-	OutcomePending   Outcome = "Pending"
 )
 
 var (
@@ -58,7 +56,7 @@ type Game struct {
 
 func NewGame(p *player.Player, d *dealer.Dealer) *Game {
 	return &Game{
-		ID:         uuid.New().String(),
+		ID:         cryptorand.Text(),
 		RoundState: RoundStateNone,
 		Player:     p,
 		Dealer:     d,
@@ -78,7 +76,7 @@ func (g *Game) StartRound() {
 
 	g.RoundState = RoundStateActive
 	g.Player.RefreshHand(hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()}))
-	g.Dealer.RefreshHand(hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()}))
+	g.Dealer.Hand = hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()})
 	g.Outcomes = nil
 }
 

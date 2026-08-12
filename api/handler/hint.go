@@ -9,7 +9,7 @@ import (
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-func NewHint(sessions *store.SessionStore, advisor *strategy.Advisor) http.HandlerFunc {
+func NewHint(sessions *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var response struct {
 			Hint string `json:"hint"`
@@ -28,7 +28,7 @@ func NewHint(sessions *store.SessionStore, advisor *strategy.Advisor) http.Handl
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No dealer hand")
 				return
 			}
-			decision, err := advisor.MakeDecision(g.Player.ActiveHand, g.Dealer.Hand)
+			decision, err := strategy.MakeDecision(g.Player.ActiveHand, g.Dealer.Hand)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to get hint")
 				return

@@ -7,10 +7,6 @@ export interface DealResponse {
   dealerCard: string;
 }
 
-export interface MoveRequest {
-  move: string;
-}
-
 export interface MoveResponse {
   roundState: string;
   activeHand: string[];

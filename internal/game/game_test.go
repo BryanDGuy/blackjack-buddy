@@ -14,7 +14,7 @@ import (
 )
 
 func TestGame_StartRoundDealsDealerHoleCard(t *testing.T) {
-	g := NewGame(player.NewPlayer(), dealer.NewDealer())
+	g := NewGame(&player.Player{}, &dealer.Dealer{})
 	g.StartRound()
 	if got := len(g.Dealer.Hand.Cards); got != 2 {
 		t.Fatalf("dealer cards = %d, want 2", got)
@@ -22,9 +22,9 @@ func TestGame_StartRoundDealsDealerHoleCard(t *testing.T) {
 }
 
 func TestGame_ApplyMoveRejectsDoubleAfterHit(t *testing.T) {
-	p := player.NewPlayer()
+	p := &player.Player{}
 	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Three), card.NewCard(card.Four)})
-	d := dealer.NewDealer()
+	d := &dealer.Dealer{}
 	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 	g := NewGame(p, d)
 	g.shoe = shoe.NewShoe([]deck.Deck{{Cards: []card.Card{
@@ -40,8 +40,8 @@ func TestGame_ApplyMoveRejectsDoubleAfterHit(t *testing.T) {
 }
 
 func TestGame_setOutcomesSplitTwentyOneIsWin(t *testing.T) {
-	p := player.NewPlayer()
-	d := dealer.NewDealer()
+	p := &player.Player{}
+	d := &dealer.Dealer{}
 	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Nine)})
 	g := NewGame(p, d)
 	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ace), card.NewCard(card.Ace)})
@@ -69,11 +69,11 @@ func TestGame_setOutcomesSplitTwentyOneIsWin(t *testing.T) {
 }
 
 func TestGame_setOutcomesDealerBlackjackBeatsSplitTwentyOne(t *testing.T) {
-	p := player.NewPlayer()
+	p := &player.Player{}
 	splitTwentyOne := hand.NewHand([]card.Card{card.NewCard(card.Ace), card.NewCard(card.Ten)})
 	splitTwentyOne.FromSplit = true
 	p.ResolvedHands = []*hand.Hand{splitTwentyOne}
-	d := dealer.NewDealer()
+	d := &dealer.Dealer{}
 	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)})
 	g := NewGame(p, d)
 
@@ -85,9 +85,9 @@ func TestGame_setOutcomesDealerBlackjackBeatsSplitTwentyOne(t *testing.T) {
 }
 
 func TestGame_ApplyMoveAllowsDoubleAfterSplit(t *testing.T) {
-	p := player.NewPlayer()
+	p := &player.Player{}
 	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Eight), card.NewCard(card.Eight)})
-	d := dealer.NewDealer()
+	d := &dealer.Dealer{}
 	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 	g := NewGame(p, d)
 	g.shoe = shoe.NewShoe([]deck.Deck{{Cards: []card.Card{
@@ -103,7 +103,7 @@ func TestGame_ApplyMoveAllowsDoubleAfterSplit(t *testing.T) {
 }
 
 func TestGame_AbandonRound(t *testing.T) {
-	g := NewGame(player.NewPlayer(), dealer.NewDealer())
+	g := NewGame(&player.Player{}, &dealer.Dealer{})
 	g.StartRound()
 	g.AbandonRound()
 	if g.RoundState != RoundStateComplete || g.Player.ActiveHand != nil {
@@ -113,8 +113,8 @@ func TestGame_AbandonRound(t *testing.T) {
 
 func TestGame_ApplyMove_Hit(t *testing.T) {
 	t.Run("hit with empty hand", func(t *testing.T) {
-		p := player.NewPlayer()
-		g := NewGame(p, dealer.NewDealer())
+		p := &player.Player{}
+		g := NewGame(p, &dealer.Dealer{})
 
 		err := g.ApplyMove(strategy.Hit)
 
@@ -124,9 +124,9 @@ func TestGame_ApplyMove_Hit(t *testing.T) {
 	})
 
 	t.Run("hit adds card", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Two), card.NewCard(card.Three)})
-		g := NewGame(p, dealer.NewDealer())
+		g := NewGame(p, &dealer.Dealer{})
 
 		err := g.ApplyMove(strategy.Hit)
 
@@ -147,10 +147,10 @@ func TestGame_ApplyMove_Hit(t *testing.T) {
 }
 
 func TestGame_ApplyMove_Stand(t *testing.T) {
-	p := player.NewPlayer()
+	p := &player.Player{}
 	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 
-	d := dealer.NewDealer()
+	d := &dealer.Dealer{}
 	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
 
 	g := NewGame(p, d)
@@ -178,8 +178,8 @@ func TestGame_ApplyMove_Stand(t *testing.T) {
 }
 
 func TestGame_ApplyMove_Stand_NoActiveHand(t *testing.T) {
-	p := player.NewPlayer()
-	g := NewGame(p, dealer.NewDealer())
+	p := &player.Player{}
+	g := NewGame(p, &dealer.Dealer{})
 
 	err := g.ApplyMove(strategy.Stand)
 
@@ -189,10 +189,10 @@ func TestGame_ApplyMove_Stand_NoActiveHand(t *testing.T) {
 }
 
 func TestGame_ApplyMove_Double(t *testing.T) {
-	p := player.NewPlayer()
+	p := &player.Player{}
 	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 
-	d := dealer.NewDealer()
+	d := &dealer.Dealer{}
 	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
 
 	g := NewGame(p, d)
@@ -225,8 +225,8 @@ func TestGame_ApplyMove_Double(t *testing.T) {
 
 func TestGame_ApplyMove_Double_InvalidMove(t *testing.T) {
 	t.Run("no active hand", func(t *testing.T) {
-		p := player.NewPlayer()
-		g := NewGame(p, dealer.NewDealer())
+		p := &player.Player{}
+		g := NewGame(p, &dealer.Dealer{})
 		err := g.ApplyMove(strategy.DoubleDown)
 
 		if err != ErrNoActiveHand {
@@ -236,10 +236,10 @@ func TestGame_ApplyMove_Double_InvalidMove(t *testing.T) {
 }
 
 func TestGame_ApplyMove_Split(t *testing.T) {
-	p := player.NewPlayer()
+	p := &player.Player{}
 	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ten)})
 
-	g := NewGame(p, dealer.NewDealer())
+	g := NewGame(p, &dealer.Dealer{})
 	err := g.ApplyMove(strategy.Split)
 
 	if err != nil {
@@ -288,12 +288,12 @@ func TestGame_ApplyMove_Split_InvalidMove(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := player.NewPlayer()
+			p := &player.Player{}
 			if tt.initialHand != nil {
 				p.ActiveHand = hand.NewHand(tt.initialHand)
 			}
 
-			g := NewGame(p, dealer.NewDealer())
+			g := NewGame(p, &dealer.Dealer{})
 			err := g.ApplyMove(strategy.Split)
 
 			if err != tt.wantErr {
@@ -305,13 +305,13 @@ func TestGame_ApplyMove_Split_InvalidMove(t *testing.T) {
 
 func TestGame_ApplyMove_Advancement(t *testing.T) {
 	t.Run("advance to unresolved hand does not complete dealer", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 		p.UnresolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Nine), card.NewCard(card.Eight)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
 
 		g := NewGame(p, d)
@@ -343,10 +343,10 @@ func TestGame_ApplyMove_Advancement(t *testing.T) {
 	})
 
 	t.Run("no unresolved hands completes dealer and sets outcomes", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
 
 		g := NewGame(p, d)
@@ -376,10 +376,10 @@ func TestGame_ApplyMove_Advancement(t *testing.T) {
 
 func TestGame_completeDealerHand(t *testing.T) {
 	t.Run("dealer hits until 17 or above", func(t *testing.T) {
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
 
-		g := NewGame(player.NewPlayer(), d)
+		g := NewGame(&player.Player{}, d)
 		g.completeDealerHand()
 
 		if d.Hand.Value() < 17 {
@@ -388,12 +388,12 @@ func TestGame_completeDealerHand(t *testing.T) {
 	})
 
 	t.Run("dealer stands on 17", func(t *testing.T) {
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 
 		initialCardCount := len(d.Hand.Cards)
 
-		g := NewGame(player.NewPlayer(), d)
+		g := NewGame(&player.Player{}, d)
 		g.completeDealerHand()
 
 		if len(d.Hand.Cards) != initialCardCount {
@@ -406,10 +406,10 @@ func TestGame_completeDealerHand(t *testing.T) {
 	})
 
 	t.Run("dealer busts", func(t *testing.T) {
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
 
-		g := NewGame(player.NewPlayer(), d)
+		g := NewGame(&player.Player{}, d)
 
 		for i := 0; i < 10 && d.Hand.Value() < 17; i++ {
 			g.completeDealerHand()
@@ -421,9 +421,9 @@ func TestGame_completeDealerHand(t *testing.T) {
 	})
 
 	t.Run("no dealer hand", func(t *testing.T) {
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 
-		g := NewGame(player.NewPlayer(), d)
+		g := NewGame(&player.Player{}, d)
 		g.completeDealerHand()
 
 		if d.Hand != nil {
@@ -434,12 +434,12 @@ func TestGame_completeDealerHand(t *testing.T) {
 
 func TestGame_setOutcomes(t *testing.T) {
 	t.Run("bust hand", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven), card.NewCard(card.King)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Eight)})
 
 		g := NewGame(p, d)
@@ -455,12 +455,12 @@ func TestGame_setOutcomes(t *testing.T) {
 	})
 
 	t.Run("player wins", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Eight)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 
 		g := NewGame(p, d)
@@ -476,12 +476,12 @@ func TestGame_setOutcomes(t *testing.T) {
 	})
 
 	t.Run("player loses", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Eight)})
 
 		g := NewGame(p, d)
@@ -497,12 +497,12 @@ func TestGame_setOutcomes(t *testing.T) {
 	})
 
 	t.Run("push", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 
 		g := NewGame(p, d)
@@ -518,12 +518,12 @@ func TestGame_setOutcomes(t *testing.T) {
 	})
 
 	t.Run("blackjack", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 
 		g := NewGame(p, d)
@@ -539,12 +539,12 @@ func TestGame_setOutcomes(t *testing.T) {
 	})
 
 	t.Run("blackjack push", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)})
 
 		g := NewGame(p, d)
@@ -560,12 +560,12 @@ func TestGame_setOutcomes(t *testing.T) {
 	})
 
 	t.Run("dealer bust", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven), card.NewCard(card.King)})
 
 		g := NewGame(p, d)
@@ -581,12 +581,12 @@ func TestGame_setOutcomes(t *testing.T) {
 	})
 
 	t.Run("no dealer hand", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
 		}
 
-		g := NewGame(p, dealer.NewDealer())
+		g := NewGame(p, &dealer.Dealer{})
 		g.setOutcomes()
 
 		if len(g.Outcomes) != 0 {
@@ -595,13 +595,13 @@ func TestGame_setOutcomes(t *testing.T) {
 	})
 
 	t.Run("multiple hands", func(t *testing.T) {
-		p := player.NewPlayer()
+		p := &player.Player{}
 		p.ResolvedHands = []*hand.Hand{
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
 			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.King)}),
 		}
 
-		d := dealer.NewDealer()
+		d := &dealer.Dealer{}
 		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Eight)})
 
 		g := NewGame(p, d)

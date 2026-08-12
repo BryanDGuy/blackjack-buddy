@@ -1,59 +1,37 @@
 <script lang="ts">
   import { TABLE_HEADERS, HARD_MATRIX, SOFT_MATRIX, PAIR_MATRIX } from '../constants';
-  import { rowDecisions, decisionClass } from '../utils';
+
+  const sections = [
+    { title: 'Hard Hands', rows: HARD_MATRIX },
+    { title: 'Soft Hands', rows: SOFT_MATRIX },
+    { title: 'Pairs', rows: PAIR_MATRIX }
+  ];
+  const decisionClasses: Record<string, string> = {
+    S: 'cell-stand', H: 'cell-hit', D: 'cell-double', SP: 'cell-split'
+  };
 </script>
 
 <div class="info-wrap">
   <div class="info-button">i</div>
   <div class="info-panel">
-    <div class="section">Hard Hands</div>
-    <table>
-      <tr>
-        {#each TABLE_HEADERS as header}
-          <th>{header}</th>
-        {/each}
-      </tr>
-      {#each HARD_MATRIX as row}
+    {#each sections as section}
+      <div class="section">{section.title}</div>
+      <table>
         <tr>
-          <td>{row[0]}</td>
-          {#each rowDecisions(row) as decision}
-            <td class={decisionClass(decision)}>{decision}</td>
+          {#each TABLE_HEADERS as header}
+            <th>{header}</th>
           {/each}
         </tr>
-      {/each}
-    </table>
-    <div class="section">Soft Hands</div>
-    <table>
-      <tr>
-        {#each TABLE_HEADERS as header}
-          <th>{header}</th>
+        {#each section.rows as row}
+          <tr>
+            <td>{row[0]}</td>
+            {#each row.slice(1) as decision}
+              <td class={decisionClasses[decision] ?? ''}>{decision}</td>
+            {/each}
+          </tr>
         {/each}
-      </tr>
-      {#each SOFT_MATRIX as row}
-        <tr>
-          <td>{row[0]}</td>
-          {#each rowDecisions(row) as decision}
-            <td class={decisionClass(decision)}>{decision}</td>
-          {/each}
-        </tr>
-      {/each}
-    </table>
-    <div class="section">Pairs</div>
-    <table>
-      <tr>
-        {#each TABLE_HEADERS as header}
-          <th>{header}</th>
-        {/each}
-      </tr>
-      {#each PAIR_MATRIX as row}
-        <tr>
-          <td>{row[0]}</td>
-          {#each rowDecisions(row) as decision}
-            <td class={decisionClass(decision)}>{decision}</td>
-          {/each}
-        </tr>
-      {/each}
-    </table>
+      </table>
+    {/each}
   </div>
 </div>
 
@@ -147,4 +125,3 @@
     color: #fff;
   }
 </style>
-

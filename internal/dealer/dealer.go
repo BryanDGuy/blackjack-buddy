@@ -8,13 +8,3 @@ import (
 type Dealer struct {
 	Hand *hand.Hand
 }
-
-func NewDealer() *Dealer {
-	return &Dealer{
-		Hand: nil,
-	}
-}
-
-func (d *Dealer) RefreshHand(newHand *hand.Hand) {
-	d.Hand = newHand
-}

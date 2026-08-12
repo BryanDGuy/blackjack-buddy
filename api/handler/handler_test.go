@@ -17,7 +17,7 @@ import (
 
 func TestDealHidesDealerHoleCard(t *testing.T) {
 	store := store.NewSessionStore()
-	g := game.NewGame(player.NewPlayer(), dealer.NewDealer())
+	g := game.NewGame(&player.Player{}, &dealer.Dealer{})
 	store.Create(g)
 	req := httptest.NewRequest(http.MethodPost, "/api/game/"+g.ID+"/deal", nil)
 	req.SetPathValue("id", g.ID)
@@ -41,12 +41,12 @@ func TestDealHidesDealerHoleCard(t *testing.T) {
 
 func TestMoveHidesDealerHoleCardWhileRoundActive(t *testing.T) {
 	sessions := store.NewSessionStore()
-	p := player.NewPlayer()
+	p := &player.Player{}
 	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
 	p.UnresolvedHands = []*hand.Hand{
 		hand.NewHand([]card.Card{card.NewCard(card.Nine), card.NewCard(card.Eight)}),
 	}
-	d := dealer.NewDealer()
+	d := &dealer.Dealer{}
 	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Six), card.NewCard(card.Ten)})
 	g := game.NewGame(p, d)
 	g.RoundState = game.RoundStateActive
@@ -74,7 +74,7 @@ func TestMoveHidesDealerHoleCardWhileRoundActive(t *testing.T) {
 
 func TestAbandonCompletesActiveRound(t *testing.T) {
 	store := store.NewSessionStore()
-	g := game.NewGame(player.NewPlayer(), dealer.NewDealer())
+	g := game.NewGame(&player.Player{}, &dealer.Dealer{})
 	g.StartRound()
 	store.Create(g)
 	req := httptest.NewRequest(http.MethodPost, "/api/game/"+g.ID+"/abandon", nil)

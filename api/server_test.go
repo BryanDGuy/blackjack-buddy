@@ -5,12 +5,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/bryan/blackjack-buddy/internal/strategy/strategies"
 )
 
 func TestServerRejectsInvalidAPIRoutes(t *testing.T) {
-	server := newServer(strategies.NewBasic())
+	server := newServer()
 	for _, test := range []struct {
 		name   string
 		method string

@@ -9,14 +9,6 @@ type Player struct {
 	ResolvedHands   []*hand.Hand
 }
 
-func NewPlayer() *Player {
-	return &Player{
-		ActiveHand:      nil,
-		UnresolvedHands: nil,
-		ResolvedHands:   nil,
-	}
-}
-
 func (p *Player) RefreshHand(newHand *hand.Hand) {
 	p.ActiveHand = newHand
 	p.UnresolvedHands = nil

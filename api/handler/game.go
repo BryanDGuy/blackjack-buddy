@@ -12,7 +12,7 @@ import (
 
 func NewGame(sessions *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		g := game.NewGame(player.NewPlayer(), dealer.NewDealer())
+		g := game.NewGame(&player.Player{}, &dealer.Dealer{})
 
 		gameID := sessions.Create(g)
 

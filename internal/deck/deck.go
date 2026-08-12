@@ -1,11 +1,7 @@
-// Package deck constructs and shuffles card decks.
+// Package deck constructs card decks.
 package deck
 
-import (
-	"math/rand"
-
-	"github.com/bryan/blackjack-buddy/internal/card"
-)
+import "github.com/bryan/blackjack-buddy/internal/card"
 
 type Deck struct {
 	Cards []card.Card
@@ -28,10 +24,4 @@ func NewDeck() Deck {
 	}
 
 	return Deck{Cards: cards}
-}
-
-func (d *Deck) Shuffle(rng *rand.Rand) {
-	rng.Shuffle(len(d.Cards), func(i, j int) {
-		d.Cards[i], d.Cards[j] = d.Cards[j], d.Cards[i]
-	})
 }

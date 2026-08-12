@@ -1,98 +1,10 @@
-# Core Design Principles
+# Blackjack Buddy
 
-## Core Principles
-
-1. **Minimalism First**: No fluff, verbose output, or decorative elements
-2. **Essential Output Only**: Single-line results, no explanations unless asked
-3. **No Emojis**: Keep all output and code professional and clean
-4. **Clean Code**: No unnecessary comments - code should be self-documenting
-5. **Eliminate Conditionals**: Strive to eliminate conditionals as much as possible. Conditionals add bloat and increase bug risk. Instead, design data flow to pass all necessary data upfront. If something is null/nil, identify and fix the design choices that made it possible rather than checking for it. Design code structure, types, and initialization flow to guarantee invariants rather than defensively checking them. Always evaluate why a value might be nil/null and redesign to make it impossible rather than checking for it.
-
-## Code Style
-
-### Output Format
-- Use concise output formats
-- Error messages: Short and direct
-- Prompts: Minimal
-- No welcome messages, banners, or decorative separators
-
-### Comments
-- Avoid inline comments unless absolutely necessary for complex logic
-- No obvious comments explaining what code does
-- Package-level documentation only when needed
-
-### Structure
-- Keep functions focused and single-purpose
-- Prefer small, readable functions over commented complex ones
-- Use descriptive names instead of comments
-- Keep functions under 30 lines
-
-## Architecture Principles
-
-### Design Principles
-- **Encapsulation**: Components must be self-contained and independent
-- **Low Coupling**: Components should not share or call functions from other components unnecessarily
-- **Single Responsibility**: Each package/struct/component has one clear purpose
-- **Interface Segregation**: Use minimal interfaces
-- **Separation of Concerns**: Keep domain logic separate from transport/UI layers
-
-### Data Flow
-- Pass all necessary data upfront - don't rely on optional/nullable values
-- Design data structures to guarantee invariants at initialization
-- Avoid defensive programming - fix the design that allows invalid states
-
-## Development Rules
-
-### When Adding Features
-1. Keep output minimal
-2. No decorative elements or "helpful" messages
-3. Maintain functional, clean code without fluff
-
-### When Modifying Code
-1. Remove comments rather than add them
-2. Simplify output rather than embellish it
-3. Reduce lines of code where possible
-4. **Eliminate conditionals first** - before adding any conditional check, ask: "Can I redesign the data flow to make this check unnecessary?"
-5. Remove defensive nil/null checks - design guarantees values exist
-6. Pass all necessary data upfront - don't rely on optional/nullable values
-7. If something can be null, fix the design that allows it rather than checking for it
-8. Question every conditional - can the design eliminate it?
-
-## Testing Requirements
-
-### Test Coverage Principles
-1. **Comprehensive Coverage**: All public functions and HTTP handlers must have tests
-2. **Edge Cases**: Test nil/empty values, boundary conditions, and error states
-3. **JSON Serialization**: For HTTP handlers, verify JSON responses never contain null arrays or objects when empty arrays/objects are expected
-4. **Round Trip**: Test that data structures serialize and deserialize correctly
-5. **Integration Points**: Test interactions between components, especially when data crosses boundaries (e.g., API responses)
-
-### When Adding Tests
-1. Test all public functions in a package
-2. For HTTP handlers, test JSON response structure and ensure arrays are never null
-3. Test edge cases: empty inputs, nil inputs, boundary values
-4. Test error conditions and error responses
-5. Use table-driven tests for multiple similar test cases
-6. Verify invariants: round completion, state transitions, data integrity
-
-### Test Anti-Patterns
-❌ Tests that only cover happy paths
-❌ Missing tests for nil/null handling in JSON responses
-❌ Skipping tests for edge cases
-❌ Tests that don't verify data structure integrity (e.g., null arrays in JSON)
-
-## Anti-Patterns to Avoid
-❌ Emojis anywhere in code or output
-❌ Multi-line explanatory messages
-❌ Welcome screens or banners
-❌ Verbose error messages with suggestions
-❌ Comments explaining obvious code
-❌ Decorative separators (===, ---, etc.)
-❌ "Helpful" context or tips in output
-❌ High coupling between independent components
-❌ **Defensive nil/null checks** - fix the design instead
-❌ **Conditional checks for values that should be guaranteed** - redesign data flow
-❌ **Optional/nullable types when values are always needed** - make them required
-❌ **Conditionals that can be eliminated through better data flow** - pass all necessary data upfront
-❌ **Null arrays in JSON responses** - always use empty slices, never nil slices that serialize to null
-
+- Prefer deletion, standard library features, and direct code over abstractions.
+- Add no dependency for behavior covered by a few clear lines.
+- Keep blackjack rules in the Go engine; the UI only mirrors legal moves.
+- Six decks, S17, double after split, no surrender, no insurance.
+- Split 21 is not a natural blackjack.
+- Preserve input validation, error handling, accessibility, and JSON empty arrays.
+- Add one focused regression for non-trivial behavior changes.
+- Run `go test ./...`, UI tests, type checking, lint, and build before completion.

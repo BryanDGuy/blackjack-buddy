@@ -4,19 +4,12 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/bryan/blackjack-buddy/internal/card"
 	"github.com/bryan/blackjack-buddy/internal/deck"
 )
 
 func TestNewShoe(t *testing.T) {
-	rng := rand.New(rand.NewSource(42))
-	decks := make([]deck.Deck, 0, 2)
-	for range 2 {
-		d := deck.NewDeck()
-		d.Shuffle(rng)
-		decks = append(decks, d)
-	}
-
-	s := NewShoe(decks)
+	s := NewShoe([]deck.Deck{deck.NewDeck(), deck.NewDeck()})
 
 	expectedCards := 2 * 52
 	if len(s.Cards) != expectedCards {
@@ -28,20 +21,8 @@ func TestShoe_Shuffle(t *testing.T) {
 	rng1 := rand.New(rand.NewSource(42))
 	rng2 := rand.New(rand.NewSource(43))
 
-	decks1 := make([]deck.Deck, 0, 1)
-	decks2 := make([]deck.Deck, 0, 1)
-	for range 1 {
-		d1 := deck.NewDeck()
-		d1.Shuffle(rng1)
-		decks1 = append(decks1, d1)
-
-		d2 := deck.NewDeck()
-		d2.Shuffle(rng2)
-		decks2 = append(decks2, d2)
-	}
-
-	s1 := NewShoe(decks1)
-	s2 := NewShoe(decks2)
+	s1 := NewShoe([]deck.Deck{deck.NewDeck()})
+	s2 := NewShoe([]deck.Deck{deck.NewDeck()})
 
 	s1.Shuffle(rng1)
 	s2.Shuffle(rng2)
@@ -69,13 +50,8 @@ func TestShoe_Shuffle(t *testing.T) {
 func TestShoe_Shuffle_ChangesOrder(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
 
-	decks := make([]deck.Deck, 0, 1)
-	d := deck.NewDeck()
-	d.Shuffle(rng)
-	decks = append(decks, d)
-
-	s1 := NewShoe(decks)
-	s2 := NewShoe(decks)
+	s1 := NewShoe([]deck.Deck{deck.NewDeck()})
+	s2 := NewShoe([]deck.Deck{deck.NewDeck()})
 
 	s2.Shuffle(rng)
 
@@ -95,34 +71,22 @@ func TestShoe_Shuffle_ChangesOrder(t *testing.T) {
 }
 
 func TestShoe_Draw(t *testing.T) {
-	rng := rand.New(rand.NewSource(42))
-	decks := make([]deck.Deck, 0, 1)
-	d := deck.NewDeck()
-	d.Shuffle(rng)
-	decks = append(decks, d)
-
-	s := NewShoe(decks)
+	s := NewShoe([]deck.Deck{deck.NewDeck()})
 	initialTotal := len(s.Cards)
 
-	card := s.Draw()
+	drawn := s.Draw()
 
 	if len(s.Cards) != initialTotal-1 {
 		t.Errorf("Draw() Cards length = %d, want %d", len(s.Cards), initialTotal-1)
 	}
 
-	if card.Rank() == 0 {
-		t.Errorf("Draw() returned invalid card")
+	if drawn.Rank() != card.Two {
+		t.Errorf("Draw() rank = %v, want %v", drawn.Rank(), card.Two)
 	}
 }
 
 func TestShoe_Draw_Multiple(t *testing.T) {
-	rng := rand.New(rand.NewSource(42))
-	decks := make([]deck.Deck, 0, 1)
-	d := deck.NewDeck()
-	d.Shuffle(rng)
-	decks = append(decks, d)
-
-	s := NewShoe(decks)
+	s := NewShoe([]deck.Deck{deck.NewDeck()})
 	initialTotal := len(s.Cards)
 
 	cardsDrawn := 10
