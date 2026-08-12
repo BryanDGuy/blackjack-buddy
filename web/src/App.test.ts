@@ -52,6 +52,9 @@ test('disables decisions and keyboard shortcuts until the current hint resolves'
   await flush();
   const hit = [...target.querySelectorAll('button')].find(button => button.textContent?.startsWith('HIT'))!;
   expect(hit.disabled).toBe(true);
+  hit.disabled = false;
+  hit.click();
+  expect(api.makeMove).not.toHaveBeenCalled();
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h' }));
   expect(api.makeMove).not.toHaveBeenCalled();
   hint.resolve('HIT');
@@ -93,6 +96,9 @@ test('renders every resolved split hand', async () => {
 });
 
 test('does not reuse a stale hint after an equal-key hand', async () => {
+  // A late older request is impossible through the public UI: every hand transition
+  // requires its current hint to settle. This verifies the closest case: a settled
+  // old hint must not enable an equal-key later hand while its fresh hint is pending.
   const freshHint = deferred<string>();
   api.loadDeal.mockResolvedValue({ playerCards: ['10', '6'], dealerCard: '10' });
   api.getHint.mockResolvedValueOnce('HIT').mockReturnValueOnce(freshHint.promise);
