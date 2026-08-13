@@ -1,7 +1,11 @@
 // Package hand models blackjack hands.
 package hand
 
-import "github.com/bryan/blackjack-buddy/internal/card"
+import (
+	"slices"
+
+	"github.com/bryan/blackjack-buddy/internal/card"
+)
 
 type Hand struct {
 	Cards     []card.Card
@@ -9,11 +13,8 @@ type Hand struct {
 }
 
 func NewHand(cards []card.Card) *Hand {
-	c := make([]card.Card, len(cards))
-	copy(c, cards)
-
 	return &Hand{
-		Cards: c,
+		Cards: slices.Clone(cards),
 	}
 }
 

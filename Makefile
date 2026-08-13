@@ -1,4 +1,4 @@
-.PHONY: all build clean run ui-build ui-install api-build lint ui-lint api-lint test ui-test api-test help
+.PHONY: all build clean run ui-build ui-install api-build lint ui-lint api-lint test ui-test api-test
 
 all: build
 
@@ -37,18 +37,3 @@ clean:
 	go clean
 	rm -f blackjack-buddy
 	rm -rf api/assets
-
-help:
-	@echo "Available targets:"
-	@echo "  build  - Build Go server and web bundle"
-	@echo "  api-build - Build Go server only"
-	@echo "  ui-build - Build Svelte UI only"
-	@echo "  run    - Build then start the server"
-	@echo "  lint   - Run static analysis (Go and UI)"
-	@echo "  api-lint - Run Go static analysis"
-	@echo "  ui-lint - Run UI static analysis"
-	@echo "  test   - Run tests (Go and UI)"
-	@echo "  api-test - Run Go tests"
-	@echo "  ui-test - Run UI tests"
-	@echo "  clean  - Remove build artifacts"
-	@echo "  help   - Show this help"

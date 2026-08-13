@@ -51,6 +51,7 @@ test('disables decisions and keyboard shortcuts until the current hint resolves'
   const { target } = mount();
   await flush();
   const hit = [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('HIT'))!;
+  expect(target.querySelector('.next-btn')).toBeNull();
   expect(hit.disabled).toBe(true);
   hit.disabled = false;
   hit.click();
@@ -60,6 +61,26 @@ test('disables decisions and keyboard shortcuts until the current hint resolves'
   hint.resolve('HIT');
   await flush();
   expect(hit.disabled).toBe(false);
+});
+
+test('uses native disclosures for the hint and strategy tables', async () => {
+  api.loadDeal.mockResolvedValue({ playerCards: ['10', '6'], dealerCard: '10' });
+  api.getHint.mockResolvedValue('HIT');
+  const { target } = mount();
+  await flush();
+
+  const hint = target.querySelector<HTMLDetailsElement>('details.hint-wrap')!;
+  const strategy = target.querySelector<HTMLDetailsElement>('details.info-wrap')!;
+  const hintSummary = hint.querySelector('summary')!;
+  expect(hintSummary.textContent).toBe('?');
+  expect(hintSummary.getAttribute('aria-label')).toBe('Show hint');
+  expect(hintSummary.textContent).not.toContain('HIT');
+  expect(hint.querySelector('.hint-panel')?.textContent).toContain('HIT');
+  expect(strategy.querySelector('summary')?.textContent).toBe('i');
+  expect(strategy.querySelectorAll('table')).toHaveLength(3);
+  expect(hint.open).toBe(false);
+  hint.querySelector('summary')!.click();
+  expect(hint.open).toBe(true);
 });
 
 test('enforces double and split conditions for buttons and keyboard shortcuts', async () => {
@@ -168,8 +189,8 @@ test('locks a round with no hint and exposes Next', async () => {
   const { target } = mount();
   await flush();
   const hit = [...target.querySelectorAll('button')].find(button => button.textContent.startsWith('HIT'))!;
-  const next = target.querySelector<HTMLButtonElement>('.next-btn')!;
+  const next = target.querySelector<HTMLButtonElement>('.next-btn');
   expect(hit.disabled).toBe(true);
   expect(target.textContent).toContain('Hint unavailable. Start next round.');
-  expect(next.classList.contains('visible')).toBe(true);
+  expect(next).not.toBeNull();
 });

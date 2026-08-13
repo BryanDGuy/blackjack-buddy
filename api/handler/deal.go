@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/bryan/blackjack-buddy/api/helpers"
 	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/game"
 )
@@ -22,8 +21,8 @@ func NewDeal(sessions *store.SessionStore) http.HandlerFunc {
 				return
 			}
 			g.StartRound()
-			response.PlayerCards = helpers.CardsToStrings(g.Player.ActiveHand.Cards)
-			response.DealerCard = g.Dealer.Hand.Cards[0].ToString()
+			response.PlayerCards = cardsToStrings(g.ActiveHand.Cards)
+			response.DealerCard = g.DealerHand.Cards[0].ToString()
 			success = true
 		}) {
 			writeError(w, http.StatusNotFound, "GAME_NOT_FOUND", "Game not found")

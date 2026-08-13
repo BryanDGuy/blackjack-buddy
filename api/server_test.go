@@ -30,3 +30,18 @@ func TestServerRejectsInvalidAPIRoutes(t *testing.T) {
 		})
 	}
 }
+
+func TestServerServesUIAtRoot(t *testing.T) {
+	response := httptest.NewRecorder()
+	newServer().handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
+	}
+	if contentType := response.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+		t.Fatalf("Content-Type = %q, want HTML", contentType)
+	}
+	if !strings.Contains(response.Body.String(), "<!DOCTYPE html>") {
+		t.Fatal("root response did not contain UI HTML")
+	}
+}

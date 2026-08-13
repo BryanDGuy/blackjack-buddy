@@ -2,621 +2,217 @@ package game
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
-	"github.com/bryan/blackjack-buddy/internal/dealer"
-	"github.com/bryan/blackjack-buddy/internal/deck"
 	"github.com/bryan/blackjack-buddy/internal/hand"
-	"github.com/bryan/blackjack-buddy/internal/player"
 	"github.com/bryan/blackjack-buddy/internal/shoe"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
 
-func TestGame_StartRoundDealsDealerHoleCard(t *testing.T) {
-	g := NewGame(&player.Player{}, &dealer.Dealer{})
+func cards(ranks ...card.Rank) []card.Card {
+	cards := make([]card.Card, len(ranks))
+	for i, rank := range ranks {
+		cards[i] = card.NewCard(rank)
+	}
+	return cards
+}
+
+func testGame(player, dealer []card.Rank) *Game {
+	g := NewGame()
+	if player != nil {
+		g.ActiveHand = hand.NewHand(cards(player...))
+	}
+	if dealer != nil {
+		g.DealerHand = hand.NewHand(cards(dealer...))
+	}
+	return g
+}
+
+func TestNewGameStartsPlayableSixDeckRound(t *testing.T) {
+	g := NewGame()
+	if g.RoundState != RoundStateNone || len(g.shoe.Cards) != decksInShoe*52 {
+		t.Fatalf("new game = %#v, shoe cards = %d", g, len(g.shoe.Cards))
+	}
 	g.StartRound()
-	if got := len(g.Dealer.Hand.Cards); got != 2 {
-		t.Fatalf("dealer cards = %d, want 2", got)
+	if g.ActiveHand == nil || g.DealerHand == nil || len(g.ActiveHand.Cards) != 2 || len(g.DealerHand.Cards) != 2 || len(g.shoe.Cards) != decksInShoe*52-4 {
+		t.Fatalf("started game = %#v, shoe cards = %d", g, len(g.shoe.Cards))
 	}
 }
 
-func TestGame_ApplyMoveRejectsDoubleAfterHit(t *testing.T) {
-	p := &player.Player{}
-	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Three), card.NewCard(card.Four)})
-	d := &dealer.Dealer{}
-	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-	g := NewGame(p, d)
-	g.shoe = shoe.NewShoe([]deck.Deck{{Cards: []card.Card{
-		card.NewCard(card.Two), card.NewCard(card.Three),
-	}}})
-
-	if err := g.ApplyMove(strategy.Hit); err != nil {
-		t.Fatal(err)
-	}
-	if err := g.ApplyMove(strategy.DoubleDown); !errors.Is(err, ErrInvalidMove) {
-		t.Fatalf("double error = %v, want %v", err, ErrInvalidMove)
-	}
-}
-
-func TestGame_setOutcomesSplitTwentyOneIsWin(t *testing.T) {
-	p := &player.Player{}
-	d := &dealer.Dealer{}
-	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Nine)})
-	g := NewGame(p, d)
-	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ace), card.NewCard(card.Ace)})
-	g.shoe = shoe.NewShoe([]deck.Deck{{Cards: []card.Card{
-		card.NewCard(card.Ten), card.NewCard(card.Ten),
-	}}})
-
-	if err := g.ApplyMove(strategy.Split); err != nil {
-		t.Fatal(err)
-	}
-	if err := g.ApplyMove(strategy.Stand); err != nil {
-		t.Fatal(err)
-	}
-	if err := g.ApplyMove(strategy.Stand); err != nil {
-		t.Fatal(err)
-	}
-	if got := len(g.Outcomes); got != 2 {
-		t.Fatalf("outcomes = %d, want 2", got)
-	}
-	for i, got := range g.Outcomes {
-		if got != OutcomeWin {
-			t.Fatalf("outcome %d = %q, want %q", i, got, OutcomeWin)
-		}
-	}
-}
-
-func TestGame_setOutcomesDealerBlackjackBeatsSplitTwentyOne(t *testing.T) {
-	p := &player.Player{}
-	splitTwentyOne := hand.NewHand([]card.Card{card.NewCard(card.Ace), card.NewCard(card.Ten)})
-	splitTwentyOne.FromSplit = true
-	p.ResolvedHands = []*hand.Hand{splitTwentyOne}
-	d := &dealer.Dealer{}
-	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)})
-	g := NewGame(p, d)
-
-	g.setOutcomes()
-
-	if got := g.Outcomes[0]; got != OutcomeLose {
-		t.Fatalf("outcome = %q, want %q", got, OutcomeLose)
-	}
-}
-
-func TestGame_ApplyMoveAllowsDoubleAfterSplit(t *testing.T) {
-	p := &player.Player{}
-	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Eight), card.NewCard(card.Eight)})
-	d := &dealer.Dealer{}
-	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-	g := NewGame(p, d)
-	g.shoe = shoe.NewShoe([]deck.Deck{{Cards: []card.Card{
-		card.NewCard(card.Three), card.NewCard(card.Four), card.NewCard(card.Two),
-	}}})
-
-	if err := g.ApplyMove(strategy.Split); err != nil {
-		t.Fatal(err)
-	}
-	if err := g.ApplyMove(strategy.DoubleDown); err != nil {
-		t.Fatalf("double after split error = %v, want nil", err)
-	}
-}
-
-func TestGame_AbandonRound(t *testing.T) {
-	g := NewGame(&player.Player{}, &dealer.Dealer{})
-	g.StartRound()
-	g.AbandonRound()
-	if g.RoundState != RoundStateComplete || g.Player.ActiveHand != nil {
-		t.Fatalf("abandoned game remains active: %#v", g)
-	}
-}
-
-func TestGame_ApplyMove_Hit(t *testing.T) {
-	t.Run("hit with empty hand", func(t *testing.T) {
-		p := &player.Player{}
-		g := NewGame(p, &dealer.Dealer{})
-
-		err := g.ApplyMove(strategy.Hit)
-
-		if err != ErrNoActiveHand {
-			t.Errorf("Hit() error = %v, want %v", err, ErrNoActiveHand)
+func TestRoundStateAndMoves(t *testing.T) {
+	t.Run("abandon", func(t *testing.T) {
+		g := NewGame()
+		g.StartRound()
+		g.AbandonRound()
+		if g.RoundState != RoundStateComplete || g.ActiveHand != nil || len(g.ResolvedHands) != 0 {
+			t.Fatalf("abandoned game = %#v", g)
 		}
 	})
 
-	t.Run("hit adds card", func(t *testing.T) {
-		p := &player.Player{}
-		p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Two), card.NewCard(card.Three)})
-		g := NewGame(p, &dealer.Dealer{})
-
-		err := g.ApplyMove(strategy.Hit)
-
-		if err != nil {
-			t.Errorf("Hit() error = %v, want nil", err)
-		}
-
-		if g.Player.ActiveHand != nil {
-			if len(g.Player.ActiveHand.Cards) != 3 {
-				t.Errorf("Hit() should add one card, got %d cards, want 3", len(g.Player.ActiveHand.Cards))
-			}
-		} else {
-			if len(g.Player.ResolvedHands) == 0 {
-				t.Error("Hit() should complete hand if bust or 21, but no resolved hands found")
-			}
-		}
-	})
-}
-
-func TestGame_ApplyMove_Stand(t *testing.T) {
-	p := &player.Player{}
-	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-
-	d := &dealer.Dealer{}
-	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
-
-	g := NewGame(p, d)
-	err := g.ApplyMove(strategy.Stand)
-
-	if err != nil {
-		t.Errorf("Stand() error = %v, want nil", err)
-	}
-
-	if g.Player.ActiveHand != nil {
-		t.Error("Stand() should complete hand")
-	}
-
-	if len(g.Player.ResolvedHands) != 1 {
-		t.Errorf("Stand() should have 1 resolved hand, got %d", len(g.Player.ResolvedHands))
-	}
-
-	if d.Hand.Value() < 17 {
-		t.Errorf("Stand() should complete dealer hand (value >= 17), got %d", d.Hand.Value())
-	}
-
-	if len(g.Outcomes) != 1 {
-		t.Errorf("Stand() should set outcomes, got %d outcomes", len(g.Outcomes))
-	}
-}
-
-func TestGame_ApplyMove_Stand_NoActiveHand(t *testing.T) {
-	p := &player.Player{}
-	g := NewGame(p, &dealer.Dealer{})
-
-	err := g.ApplyMove(strategy.Stand)
-
-	if err != ErrNoActiveHand {
-		t.Errorf("Stand() error = %v, want %v", err, ErrNoActiveHand)
-	}
-}
-
-func TestGame_ApplyMove_Double(t *testing.T) {
-	p := &player.Player{}
-	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-
-	d := &dealer.Dealer{}
-	d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
-
-	g := NewGame(p, d)
-	err := g.ApplyMove(strategy.DoubleDown)
-
-	if err != nil {
-		t.Errorf("Double() error = %v, want nil", err)
-	}
-
-	if g.Player.ActiveHand != nil {
-		t.Error("Double() should complete hand")
-	}
-
-	if len(g.Player.ResolvedHands) != 1 {
-		t.Errorf("Double() should have 1 resolved hand, got %d", len(g.Player.ResolvedHands))
-	}
-
-	if len(g.Player.ResolvedHands[0].Cards) != 3 {
-		t.Errorf("Double() should have 3 cards in resolved hand, got %d", len(g.Player.ResolvedHands[0].Cards))
-	}
-
-	if d.Hand.Value() < 17 {
-		t.Errorf("Double() should complete dealer hand (value >= 17), got %d", d.Hand.Value())
-	}
-
-	if len(g.Outcomes) != 1 {
-		t.Errorf("Double() should set outcomes, got %d outcomes", len(g.Outcomes))
-	}
-}
-
-func TestGame_ApplyMove_Double_InvalidMove(t *testing.T) {
 	t.Run("no active hand", func(t *testing.T) {
-		p := &player.Player{}
-		g := NewGame(p, &dealer.Dealer{})
-		err := g.ApplyMove(strategy.DoubleDown)
+		for _, move := range []strategy.Decision{strategy.Hit, strategy.Stand, strategy.DoubleDown, strategy.Split} {
+			if err := NewGame().ApplyMove(move); !errors.Is(err, ErrNoActiveHand) {
+				t.Errorf("%s error = %v, want %v", move, err, ErrNoActiveHand)
+			}
+		}
+	})
 
-		if err != ErrNoActiveHand {
-			t.Errorf("Double() error = %v, want %v", err, ErrNoActiveHand)
+	t.Run("hit", func(t *testing.T) {
+		g := testGame([]card.Rank{card.Two, card.Three}, []card.Rank{card.Ten, card.Seven})
+		g.shoe = shoe.Shoe{Cards: cards(card.Two)}
+		if err := g.ApplyMove(strategy.Hit); err != nil || len(g.ActiveHand.Cards) != 3 {
+			t.Fatalf("hit error = %v, hand = %#v", err, g.ActiveHand)
+		}
+	})
+
+	t.Run("hit resolves on 21", func(t *testing.T) {
+		g := testGame([]card.Rank{card.Ten, card.Nine}, []card.Rank{card.Ten, card.Seven})
+		g.shoe = shoe.Shoe{Cards: cards(card.Two)}
+		if err := g.ApplyMove(strategy.Hit); err != nil || g.ActiveHand != nil || g.RoundState != RoundStateComplete || !reflect.DeepEqual(g.Outcomes, []Outcome{OutcomeWin}) {
+			t.Fatalf("hit result: err = %v, game = %#v", err, g)
+		}
+	})
+
+	t.Run("hit resolves on bust", func(t *testing.T) {
+		g := testGame([]card.Rank{card.Ten, card.Nine}, []card.Rank{card.Ten, card.Seven})
+		g.shoe = shoe.Shoe{Cards: cards(card.King)}
+		if err := g.ApplyMove(strategy.Hit); err != nil || g.ActiveHand != nil || !reflect.DeepEqual(g.Outcomes, []Outcome{OutcomeBust}) {
+			t.Fatalf("hit result: err = %v, game = %#v", err, g)
+		}
+	})
+
+	t.Run("stand completes dealer on S17", func(t *testing.T) {
+		g := testGame([]card.Rank{card.Ten, card.Seven}, []card.Rank{card.Ten, card.Six})
+		g.shoe = shoe.Shoe{Cards: cards(card.Two)}
+		if err := g.ApplyMove(strategy.Stand); err != nil || g.DealerHand.Value() != 18 || !reflect.DeepEqual(g.Outcomes, []Outcome{OutcomeLose}) {
+			t.Fatalf("stand result: err = %v, game = %#v", err, g)
+		}
+	})
+
+	t.Run("double only with two cards", func(t *testing.T) {
+		g := testGame([]card.Rank{card.Three, card.Four}, []card.Rank{card.Ten, card.Seven})
+		g.shoe = shoe.Shoe{Cards: cards(card.Two)}
+		if err := g.ApplyMove(strategy.Hit); err != nil {
+			t.Fatal(err)
+		}
+		if err := g.ApplyMove(strategy.DoubleDown); !errors.Is(err, ErrInvalidMove) {
+			t.Fatalf("double error = %v, want %v", err, ErrInvalidMove)
+		}
+	})
+
+	t.Run("double completes the hand", func(t *testing.T) {
+		g := testGame([]card.Rank{card.Ten, card.Seven}, []card.Rank{card.Ten, card.Seven})
+		g.shoe = shoe.Shoe{Cards: cards(card.Two)}
+		if err := g.ApplyMove(strategy.DoubleDown); err != nil || len(g.ResolvedHands) != 1 || len(g.ResolvedHands[0].Cards) != 3 || !reflect.DeepEqual(g.Outcomes, []Outcome{OutcomeWin}) {
+			t.Fatalf("double result: err = %v, game = %#v", err, g)
+		}
+	})
+
+	t.Run("split advances and permits double", func(t *testing.T) {
+		g := testGame([]card.Rank{card.Eight, card.Eight}, []card.Rank{card.Ten, card.Seven})
+		g.shoe = shoe.Shoe{Cards: cards(card.Three, card.Four, card.Two)}
+		if err := g.ApplyMove(strategy.Split); err != nil {
+			t.Fatal(err)
+		}
+		if len(g.UnresolvedHands) != 1 || !g.ActiveHand.FromSplit || !g.UnresolvedHands[0].FromSplit {
+			t.Fatalf("split game = %#v", g)
+		}
+		second := g.UnresolvedHands[0]
+		if err := g.ApplyMove(strategy.DoubleDown); err != nil || len(g.ResolvedHands) != 1 || g.ActiveHand != second || len(g.UnresolvedHands) != 0 || len(g.DealerHand.Cards) != 2 {
+			t.Fatalf("split double: err = %v, game = %#v", err, g)
+		}
+	})
+
+	t.Run("invalid split", func(t *testing.T) {
+		for _, player := range [][]card.Rank{nil, {card.Ten, card.Seven}, {card.Ten, card.Ten, card.Two}} {
+			g := testGame(player, []card.Rank{card.Ten, card.Seven})
+			want := ErrInvalidSplit
+			if player == nil {
+				want = ErrNoActiveHand
+			}
+			if err := g.ApplyMove(strategy.Split); !errors.Is(err, want) {
+				t.Errorf("split %v error = %v, want %v", player, err, want)
+			}
 		}
 	})
 }
 
-func TestGame_ApplyMove_Split(t *testing.T) {
-	p := &player.Player{}
-	p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ten)})
-
-	g := NewGame(p, &dealer.Dealer{})
-	err := g.ApplyMove(strategy.Split)
-
-	if err != nil {
-		t.Errorf("Split() error = %v, want nil", err)
+func TestSplitTwentyOneIsNotBlackjack(t *testing.T) {
+	g := testGame([]card.Rank{card.Ace, card.Ace}, []card.Rank{card.Ten, card.Nine})
+	g.shoe = shoe.Shoe{Cards: cards(card.Ten, card.Ten)}
+	for _, move := range []strategy.Decision{strategy.Split, strategy.Stand, strategy.Stand} {
+		if err := g.ApplyMove(move); err != nil {
+			t.Fatal(err)
+		}
 	}
-
-	if g.Player.ActiveHand == nil {
-		t.Fatal("Split() should have active hand")
-	}
-
-	if len(g.Player.ActiveHand.Cards) != 2 {
-		t.Errorf("Split() active hand should have 2 cards, got %d", len(g.Player.ActiveHand.Cards))
-	}
-
-	if len(g.Player.UnresolvedHands) != 1 {
-		t.Errorf("Split() should have 1 unresolved hand, got %d", len(g.Player.UnresolvedHands))
-	}
-
-	if len(g.Player.UnresolvedHands[0].Cards) != 2 {
-		t.Errorf("Split() unresolved hand should have 2 cards, got %d", len(g.Player.UnresolvedHands[0].Cards))
+	if !reflect.DeepEqual(g.Outcomes, []Outcome{OutcomeWin, OutcomeWin}) {
+		t.Fatalf("outcomes = %v", g.Outcomes)
 	}
 }
 
-func TestGame_ApplyMove_Split_InvalidMove(t *testing.T) {
-	tests := []struct {
-		name        string
-		initialHand []card.Card
-		wantErr     error
-	}{
-		{
-			name:        "no active hand",
-			initialHand: nil,
-			wantErr:     ErrNoActiveHand,
-		},
-		{
-			name:        "more than 2 cards",
-			initialHand: []card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven), card.NewCard(card.Two)},
-			wantErr:     ErrInvalidSplit,
-		},
-		{
-			name:        "cannot split different ranks",
-			initialHand: []card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)},
-			wantErr:     ErrInvalidSplit,
-		},
+func TestDealerCompletion(t *testing.T) {
+	g := testGame(nil, []card.Rank{card.Ten, card.Six})
+	g.shoe = shoe.Shoe{Cards: cards(card.Two)}
+	g.completeDealerHand()
+	if g.DealerHand.Value() != 18 {
+		t.Fatalf("dealer value = %d, want 18", g.DealerHand.Value())
 	}
 
+	g = testGame(nil, []card.Rank{card.Ace, card.Six})
+	g.shoe = shoe.Shoe{Cards: cards(card.Two)}
+	g.completeDealerHand()
+	if len(g.DealerHand.Cards) != 2 {
+		t.Fatalf("soft 17 dealer cards = %d, want 2", len(g.DealerHand.Cards))
+	}
+
+	g = NewGame()
+	g.completeDealerHand()
+}
+
+func TestOutcomes(t *testing.T) {
+	tests := []struct {
+		name   string
+		player []card.Rank
+		dealer []card.Rank
+		split  bool
+		want   Outcome
+	}{
+		{"bust", []card.Rank{card.Ten, card.Seven, card.King}, []card.Rank{card.Ten, card.Eight}, false, OutcomeBust},
+		{"win", []card.Rank{card.Ten, card.Eight}, []card.Rank{card.Ten, card.Seven}, false, OutcomeWin},
+		{"lose", []card.Rank{card.Ten, card.Seven}, []card.Rank{card.Ten, card.Eight}, false, OutcomeLose},
+		{"push", []card.Rank{card.Ten, card.Seven}, []card.Rank{card.Ten, card.Seven}, false, OutcomePush},
+		{"blackjack", []card.Rank{card.Ten, card.Ace}, []card.Rank{card.Ten, card.Seven}, false, OutcomeBlackjack},
+		{"blackjack push", []card.Rank{card.Ten, card.Ace}, []card.Rank{card.Ten, card.Ace}, false, OutcomePush},
+		{"dealer bust", []card.Rank{card.Ten, card.Seven}, []card.Rank{card.Ten, card.Seven, card.King}, false, OutcomeWin},
+		{"split 21", []card.Rank{card.Ace, card.Ten}, []card.Rank{card.Ten, card.Nine}, true, OutcomeWin},
+		{"dealer blackjack beats split 21", []card.Rank{card.Ace, card.Ten}, []card.Rank{card.Ten, card.Ace}, true, OutcomeLose},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &player.Player{}
-			if tt.initialHand != nil {
-				p.ActiveHand = hand.NewHand(tt.initialHand)
-			}
-
-			g := NewGame(p, &dealer.Dealer{})
-			err := g.ApplyMove(strategy.Split)
-
-			if err != tt.wantErr {
-				t.Errorf("Split() error = %v, want %v", err, tt.wantErr)
+			g := testGame(nil, tt.dealer)
+			h := hand.NewHand(cards(tt.player...))
+			h.FromSplit = tt.split
+			g.ResolvedHands = []*hand.Hand{h}
+			g.setOutcomes()
+			if !reflect.DeepEqual(g.Outcomes, []Outcome{tt.want}) {
+				t.Fatalf("outcomes = %v, want %v", g.Outcomes, tt.want)
 			}
 		})
 	}
-}
 
-func TestGame_ApplyMove_Advancement(t *testing.T) {
-	t.Run("advance to unresolved hand does not complete dealer", func(t *testing.T) {
-		p := &player.Player{}
-		p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-		p.UnresolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Nine), card.NewCard(card.Eight)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
-
-		g := NewGame(p, d)
-		err := g.ApplyMove(strategy.Stand)
-
-		if err != nil {
-			t.Fatalf("ApplyMove() error = %v, want nil", err)
-		}
-
-		if g.Player.ActiveHand == nil {
-			t.Fatal("ApplyMove() should have active hand after advancing")
-		}
-
-		if len(g.Player.ResolvedHands) != 1 {
-			t.Errorf("ApplyMove() should have 1 resolved hand, got %d", len(g.Player.ResolvedHands))
-		}
-
-		if len(g.Player.UnresolvedHands) != 0 {
-			t.Errorf("ApplyMove() should have 0 unresolved hands, got %d", len(g.Player.UnresolvedHands))
-		}
-
-		if len(d.Hand.Cards) != 2 {
-			t.Errorf("ApplyMove() should not complete dealer hand when unresolved hands exist, dealer should still have 2 cards, got %d", len(d.Hand.Cards))
-		}
-
-		if len(g.Outcomes) != 0 {
-			t.Errorf("ApplyMove() should not set outcomes when unresolved hands exist, got %d outcomes", len(g.Outcomes))
-		}
-	})
-
-	t.Run("no unresolved hands completes dealer and sets outcomes", func(t *testing.T) {
-		p := &player.Player{}
-		p.ActiveHand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
-
-		g := NewGame(p, d)
-		err := g.ApplyMove(strategy.Stand)
-
-		if err != nil {
-			t.Fatalf("ApplyMove() error = %v, want nil", err)
-		}
-
-		if g.Player.ActiveHand != nil {
-			t.Error("ApplyMove() should not have active hand when no unresolved hands")
-		}
-
-		if len(g.Player.ResolvedHands) != 1 {
-			t.Errorf("ApplyMove() should have 1 resolved hand, got %d", len(g.Player.ResolvedHands))
-		}
-
-		if d.Hand.Value() < 17 {
-			t.Errorf("ApplyMove() should complete dealer hand (value >= 17), got %d", d.Hand.Value())
-		}
-
-		if len(g.Outcomes) != 1 {
-			t.Errorf("ApplyMove() should set outcomes when player is done, got %d outcomes", len(g.Outcomes))
-		}
-	})
-}
-
-func TestGame_completeDealerHand(t *testing.T) {
-	t.Run("dealer hits until 17 or above", func(t *testing.T) {
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
-
-		g := NewGame(&player.Player{}, d)
-		g.completeDealerHand()
-
-		if d.Hand.Value() < 17 {
-			t.Errorf("completeDealerHand() should hit until value >= 17, got %d", d.Hand.Value())
-		}
-	})
-
-	t.Run("dealer stands on 17", func(t *testing.T) {
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-
-		initialCardCount := len(d.Hand.Cards)
-
-		g := NewGame(&player.Player{}, d)
-		g.completeDealerHand()
-
-		if len(d.Hand.Cards) != initialCardCount {
-			t.Errorf("completeDealerHand() should not hit when value is 17, got %d cards", len(d.Hand.Cards))
-		}
-
-		if d.Hand.Value() != 17 {
-			t.Errorf("completeDealerHand() should keep value at 17, got %d", d.Hand.Value())
-		}
-	})
-
-	t.Run("dealer busts", func(t *testing.T) {
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Six)})
-
-		g := NewGame(&player.Player{}, d)
-
-		for i := 0; i < 10 && d.Hand.Value() < 17; i++ {
-			g.completeDealerHand()
-		}
-
-		if d.Hand.Value() < 17 {
-			t.Errorf("completeDealerHand() should continue until value >= 17 or bust, but value is %d", d.Hand.Value())
-		}
-	})
-
-	t.Run("no dealer hand", func(t *testing.T) {
-		d := &dealer.Dealer{}
-
-		g := NewGame(&player.Player{}, d)
-		g.completeDealerHand()
-
-		if d.Hand != nil {
-			t.Error("completeDealerHand() should handle nil dealer hand gracefully")
-		}
-	})
-}
-
-func TestGame_setOutcomes(t *testing.T) {
-	t.Run("bust hand", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven), card.NewCard(card.King)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Eight)})
-
-		g := NewGame(p, d)
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 1 {
-			t.Fatalf("SetOutcomes() should have 1 outcome, got %d", len(g.Outcomes))
-		}
-
-		if g.Outcomes[0] != OutcomeBust {
-			t.Errorf("SetOutcomes() outcome = %v, want %v", g.Outcomes[0], OutcomeBust)
-		}
-	})
-
-	t.Run("player wins", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Eight)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-
-		g := NewGame(p, d)
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 1 {
-			t.Fatalf("SetOutcomes() should have 1 outcome, got %d", len(g.Outcomes))
-		}
-
-		if g.Outcomes[0] != OutcomeWin {
-			t.Errorf("SetOutcomes() outcome = %v, want %v", g.Outcomes[0], OutcomeWin)
-		}
-	})
-
-	t.Run("player loses", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Eight)})
-
-		g := NewGame(p, d)
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 1 {
-			t.Fatalf("SetOutcomes() should have 1 outcome, got %d", len(g.Outcomes))
-		}
-
-		if g.Outcomes[0] != OutcomeLose {
-			t.Errorf("SetOutcomes() outcome = %v, want %v", g.Outcomes[0], OutcomeLose)
-		}
-	})
-
-	t.Run("push", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-
-		g := NewGame(p, d)
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 1 {
-			t.Fatalf("SetOutcomes() should have 1 outcome, got %d", len(g.Outcomes))
-		}
-
-		if g.Outcomes[0] != OutcomePush {
-			t.Errorf("SetOutcomes() outcome = %v, want %v", g.Outcomes[0], OutcomePush)
-		}
-	})
-
-	t.Run("blackjack", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)})
-
-		g := NewGame(p, d)
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 1 {
-			t.Fatalf("SetOutcomes() should have 1 outcome, got %d", len(g.Outcomes))
-		}
-
-		if g.Outcomes[0] != OutcomeBlackjack {
-			t.Errorf("SetOutcomes() outcome = %v, want %v", g.Outcomes[0], OutcomeBlackjack)
-		}
-	})
-
-	t.Run("blackjack push", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Ace)})
-
-		g := NewGame(p, d)
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 1 {
-			t.Fatalf("SetOutcomes() should have 1 outcome, got %d", len(g.Outcomes))
-		}
-
-		if g.Outcomes[0] != OutcomePush {
-			t.Errorf("SetOutcomes() outcome = %v, want %v", g.Outcomes[0], OutcomePush)
-		}
-	})
-
-	t.Run("dealer bust", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven), card.NewCard(card.King)})
-
-		g := NewGame(p, d)
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 1 {
-			t.Fatalf("SetOutcomes() should have 1 outcome, got %d", len(g.Outcomes))
-		}
-
-		if g.Outcomes[0] != OutcomeWin {
-			t.Errorf("SetOutcomes() outcome = %v, want %v", g.Outcomes[0], OutcomeWin)
-		}
-	})
-
-	t.Run("no dealer hand", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
-		}
-
-		g := NewGame(p, &dealer.Dealer{})
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 0 {
-			t.Errorf("SetOutcomes() should have 0 outcomes when no dealer hand, got %d", len(g.Outcomes))
-		}
-	})
-
-	t.Run("multiple hands", func(t *testing.T) {
-		p := &player.Player{}
-		p.ResolvedHands = []*hand.Hand{
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Seven)}),
-			hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.King)}),
-		}
-
-		d := &dealer.Dealer{}
-		d.Hand = hand.NewHand([]card.Card{card.NewCard(card.Ten), card.NewCard(card.Eight)})
-
-		g := NewGame(p, d)
-		g.setOutcomes()
-
-		if len(g.Outcomes) != 2 {
-			t.Fatalf("SetOutcomes() should have 2 outcomes, got %d", len(g.Outcomes))
-		}
-
-		if g.Outcomes[0] != OutcomeLose {
-			t.Errorf("SetOutcomes() first outcome = %v, want %v", g.Outcomes[0], OutcomeLose)
-		}
-
-		if g.Outcomes[1] != OutcomeWin {
-			t.Errorf("SetOutcomes() second outcome = %v, want %v", g.Outcomes[1], OutcomeWin)
-		}
-	})
+	g := testGame(nil, nil)
+	g.ResolvedHands = []*hand.Hand{hand.NewHand(cards(card.Ten, card.Seven))}
+	g.setOutcomes()
+	if len(g.Outcomes) != 0 {
+		t.Fatalf("nil dealer outcomes = %v", g.Outcomes)
+	}
+
+	g = testGame(nil, []card.Rank{card.Ten, card.Eight})
+	g.ResolvedHands = []*hand.Hand{hand.NewHand(cards(card.Ten, card.Seven)), hand.NewHand(cards(card.Ten, card.King))}
+	g.setOutcomes()
+	if !reflect.DeepEqual(g.Outcomes, []Outcome{OutcomeLose, OutcomeWin}) {
+		t.Fatalf("multiple outcomes = %v", g.Outcomes)
+	}
 }

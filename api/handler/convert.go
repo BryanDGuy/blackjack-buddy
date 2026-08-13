@@ -1,9 +1,8 @@
-// Package helpers contains API conversion helpers.
-package helpers
+package handler
 
 import "github.com/bryan/blackjack-buddy/internal/card"
 
-func CardsToStrings(cards []card.Card) []string {
+func cardsToStrings(cards []card.Card) []string {
 	out := make([]string, len(cards))
 	for i, c := range cards {
 		out[i] = c.ToString()

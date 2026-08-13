@@ -8,10 +8,7 @@ import (
 	"time"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
-	"github.com/bryan/blackjack-buddy/internal/dealer"
-	"github.com/bryan/blackjack-buddy/internal/deck"
 	"github.com/bryan/blackjack-buddy/internal/hand"
-	"github.com/bryan/blackjack-buddy/internal/player"
 	"github.com/bryan/blackjack-buddy/internal/shoe"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
 )
@@ -46,37 +43,34 @@ var (
 )
 
 type Game struct {
-	ID         string
-	RoundState RoundStateType
-	Player     *player.Player
-	Dealer     *dealer.Dealer
-	Outcomes   []Outcome
-	shoe       shoe.Shoe
+	ID              string
+	RoundState      RoundStateType
+	ActiveHand      *hand.Hand
+	UnresolvedHands []*hand.Hand
+	ResolvedHands   []*hand.Hand
+	DealerHand      *hand.Hand
+	Outcomes        []Outcome
+	shoe            shoe.Shoe
 }
 
-func NewGame(p *player.Player, d *dealer.Dealer) *Game {
+func NewGame() *Game {
 	return &Game{
 		ID:         cryptorand.Text(),
 		RoundState: RoundStateNone,
-		Player:     p,
-		Dealer:     d,
-		Outcomes:   nil,
 		shoe:       generateShuffledShoe(),
 	}
 }
 
 func (g *Game) StartRound() {
-	if g.Player == nil || g.Dealer == nil {
-		return
-	}
-
 	if len(g.shoe.Cards) < reshuffleThreshold {
 		g.shoe = generateShuffledShoe()
 	}
 
 	g.RoundState = RoundStateActive
-	g.Player.RefreshHand(hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()}))
-	g.Dealer.Hand = hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()})
+	g.ActiveHand = hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()})
+	g.UnresolvedHands = nil
+	g.ResolvedHands = nil
+	g.DealerHand = hand.NewHand([]card.Card{g.shoe.Draw(), g.shoe.Draw()})
 	g.Outcomes = nil
 }
 
@@ -84,13 +78,15 @@ func (g *Game) AbandonRound() {
 	if g.RoundState != RoundStateActive {
 		return
 	}
-	g.Player.RefreshHand(nil)
+	g.ActiveHand = nil
+	g.UnresolvedHands = nil
+	g.ResolvedHands = nil
 	g.Outcomes = nil
 	g.RoundState = RoundStateComplete
 }
 
 func (g *Game) ApplyMove(move strategy.Decision) error {
-	if g.Player == nil || g.Player.ActiveHand == nil || g.Player.ActiveHand.IsEmpty() {
+	if g.ActiveHand == nil || g.ActiveHand.IsEmpty() {
 		return ErrNoActiveHand
 	}
 
@@ -103,7 +99,7 @@ func (g *Game) ApplyMove(move strategy.Decision) error {
 	case strategy.Hit:
 		isPlayerHandResolved = g.hit()
 	case strategy.Stand:
-		isPlayerHandResolved = g.stand()
+		isPlayerHandResolved = true
 	case strategy.DoubleDown:
 		isPlayerHandResolved, err = g.double()
 	case strategy.Split:
@@ -117,10 +113,12 @@ func (g *Game) ApplyMove(move strategy.Decision) error {
 	}
 
 	if isPlayerHandResolved {
-		g.markPlayerHandAsResolved()
+		g.ResolvedHands = append(g.ResolvedHands, g.ActiveHand)
+		g.ActiveHand = nil
 
-		if len(g.Player.UnresolvedHands) > 0 {
-			g.activateNextHand()
+		if len(g.UnresolvedHands) > 0 {
+			g.ActiveHand = g.UnresolvedHands[0]
+			g.UnresolvedHands = g.UnresolvedHands[1:]
 		} else {
 			g.completeDealerHand()
 			g.setOutcomes()
@@ -132,87 +130,59 @@ func (g *Game) ApplyMove(move strategy.Decision) error {
 }
 
 func (g *Game) hit() bool {
-	g.Player.ActiveHand.AddCard(g.shoe.Draw())
-
-	if g.Player.ActiveHand.IsBust() {
-		return true
-	}
-
-	if g.Player.ActiveHand.Value() == 21 {
-		return true
-	}
-
-	return false
-}
-
-func (g *Game) stand() bool {
-	return true
+	g.ActiveHand.AddCard(g.shoe.Draw())
+	return g.ActiveHand.Value() >= 21
 }
 
 func (g *Game) double() (bool, error) {
-	if len(g.Player.ActiveHand.Cards) != 2 {
+	if len(g.ActiveHand.Cards) != 2 {
 		return false, ErrInvalidMove
 	}
-	g.Player.ActiveHand.AddCard(g.shoe.Draw())
+	g.ActiveHand.AddCard(g.shoe.Draw())
 	return true, nil
 }
 
 func (g *Game) split() error {
-	if !g.Player.ActiveHand.CanSplit() {
+	if !g.ActiveHand.CanSplit() {
 		return ErrInvalidSplit
 	}
 
-	first := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[0], g.shoe.Draw()})
-	second := hand.NewHand([]card.Card{g.Player.ActiveHand.Cards[1], g.shoe.Draw()})
+	first := hand.NewHand([]card.Card{g.ActiveHand.Cards[0], g.shoe.Draw()})
+	second := hand.NewHand([]card.Card{g.ActiveHand.Cards[1], g.shoe.Draw()})
 	first.FromSplit = true
 	second.FromSplit = true
 
-	g.Player.ActiveHand = first
-	g.Player.UnresolvedHands = append([]*hand.Hand{second}, g.Player.UnresolvedHands...)
+	g.ActiveHand = first
+	g.UnresolvedHands = append([]*hand.Hand{second}, g.UnresolvedHands...)
 
 	return nil
 }
 
 func generateShuffledShoe() shoe.Shoe {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	decks := make([]deck.Deck, 0, decksInShoe)
-	for range decksInShoe {
-		decks = append(decks, deck.NewDeck())
-	}
-
-	s := shoe.NewShoe(decks)
+	s := shoe.NewShoe(decksInShoe)
 	s.Shuffle(rng)
 
 	return s
 }
 
-func (g *Game) markPlayerHandAsResolved() {
-	g.Player.ResolvedHands = append(g.Player.ResolvedHands, g.Player.ActiveHand)
-	g.Player.ActiveHand = nil
-}
-
-func (g *Game) activateNextHand() {
-	g.Player.ActiveHand = g.Player.UnresolvedHands[0]
-	g.Player.UnresolvedHands = g.Player.UnresolvedHands[1:]
-}
-
 func (g *Game) completeDealerHand() {
-	if g.Dealer == nil || g.Dealer.Hand == nil {
+	if g.DealerHand == nil {
 		return
 	}
 
-	for g.Dealer.Hand.Value() < 17 {
-		g.Dealer.Hand.AddCard(g.shoe.Draw())
+	for g.DealerHand.Value() < 17 {
+		g.DealerHand.AddCard(g.shoe.Draw())
 	}
 }
 
 func (g *Game) setOutcomes() {
-	if g.Dealer == nil || g.Player == nil || g.Dealer.Hand == nil {
+	if g.DealerHand == nil {
 		g.Outcomes = []Outcome{}
 		return
 	}
 
-	resolvedHands := g.Player.ResolvedHands
+	resolvedHands := g.ResolvedHands
 	results := make([]Outcome, len(resolvedHands))
 
 	for i, playerHand := range resolvedHands {
@@ -220,18 +190,18 @@ func (g *Game) setOutcomes() {
 		case playerHand.IsBust():
 			results[i] = OutcomeBust
 		case !playerHand.FromSplit && len(playerHand.Cards) == 2 && playerHand.Value() == 21:
-			if g.Dealer.Hand.IsBlackjack() {
+			if g.DealerHand.IsBlackjack() {
 				results[i] = OutcomePush
 			} else {
 				results[i] = OutcomeBlackjack
 			}
-		case g.Dealer.Hand.IsBlackjack():
+		case g.DealerHand.IsBlackjack():
 			results[i] = OutcomeLose
-		case g.Dealer.Hand.IsBust():
+		case g.DealerHand.IsBust():
 			results[i] = OutcomeWin
-		case playerHand.Value() > g.Dealer.Hand.Value():
+		case playerHand.Value() > g.DealerHand.Value():
 			results[i] = OutcomeWin
-		case playerHand.Value() < g.Dealer.Hand.Value():
+		case playerHand.Value() < g.DealerHand.Value():
 			results[i] = OutcomeLose
 		default:
 			results[i] = OutcomePush

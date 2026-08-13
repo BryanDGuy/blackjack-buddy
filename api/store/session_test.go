@@ -4,15 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bryan/blackjack-buddy/internal/dealer"
 	"github.com/bryan/blackjack-buddy/internal/game"
-	"github.com/bryan/blackjack-buddy/internal/player"
 )
 
 func TestSessionStoreExpiresIdleGames(t *testing.T) {
 	now := time.Date(2026, 8, 12, 0, 0, 0, 0, time.UTC)
 	store := newSessionStore(func() time.Time { return now })
-	g := game.NewGame(&player.Player{}, &dealer.Dealer{})
+	g := game.NewGame()
 	store.Create(g)
 	now = now.Add(24*time.Hour + time.Second)
 	if store.WithGame(g.ID, func(*game.Game) {}) {
@@ -22,7 +20,7 @@ func TestSessionStoreExpiresIdleGames(t *testing.T) {
 
 func TestSessionStoreSerializesOneGame(t *testing.T) {
 	store := NewSessionStore()
-	g := game.NewGame(&player.Player{}, &dealer.Dealer{})
+	g := game.NewGame()
 	store.Create(g)
 	entry := store.games[g.ID]
 	entered := make(chan struct{})

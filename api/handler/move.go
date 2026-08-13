@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/bryan/blackjack-buddy/api/helpers"
 	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/game"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
@@ -31,8 +30,7 @@ func NewMove(sessions *store.SessionStore) http.HandlerFunc {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 				return
 			}
-			player := g.Player
-			if player == nil || player.ActiveHand == nil {
+			if g.ActiveHand == nil {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
 				return
 			}
@@ -55,26 +53,26 @@ func NewMove(sessions *store.SessionStore) http.HandlerFunc {
 			}
 			response.RoundState = string(g.RoundState)
 			response.ActiveHand = []string{}
-			if player.ActiveHand != nil {
-				response.ActiveHand = helpers.CardsToStrings(player.ActiveHand.Cards)
+			if g.ActiveHand != nil {
+				response.ActiveHand = cardsToStrings(g.ActiveHand.Cards)
 			}
-			response.UnresolvedHands = make([][]string, len(player.UnresolvedHands))
-			for i, h := range player.UnresolvedHands {
-				response.UnresolvedHands[i] = helpers.CardsToStrings(h.Cards)
+			response.UnresolvedHands = make([][]string, len(g.UnresolvedHands))
+			for i, h := range g.UnresolvedHands {
+				response.UnresolvedHands[i] = cardsToStrings(h.Cards)
 			}
-			response.ResolvedHands = make([][]string, len(player.ResolvedHands))
-			for i, h := range player.ResolvedHands {
-				response.ResolvedHands[i] = helpers.CardsToStrings(h.Cards)
+			response.ResolvedHands = make([][]string, len(g.ResolvedHands))
+			for i, h := range g.ResolvedHands {
+				response.ResolvedHands[i] = cardsToStrings(h.Cards)
 			}
 			response.DealerCards = []string{}
-			if g.Dealer != nil && g.Dealer.Hand != nil {
-				dealerCards := g.Dealer.Hand.Cards
+			if g.DealerHand != nil {
+				dealerCards := g.DealerHand.Cards
 				if g.RoundState == game.RoundStateActive && len(dealerCards) > 0 {
 					dealerCards = dealerCards[:1]
 				}
-				response.DealerCards = helpers.CardsToStrings(dealerCards)
+				response.DealerCards = cardsToStrings(dealerCards)
 			}
-			response.Outcomes = append([]game.Outcome(nil), g.Outcomes...)
+			response.Outcomes = append([]game.Outcome{}, g.Outcomes...)
 			success = true
 		}) {
 			writeError(w, http.StatusNotFound, "GAME_NOT_FOUND", "Game not found")

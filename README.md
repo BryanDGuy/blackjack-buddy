@@ -40,6 +40,6 @@ The binary hosts the HTTP API and embedded trainer UI.
 
 ## Structure
 
-- `api/` — HTTP server, handlers, helpers, embedded assets
+- `api/` — HTTP server, handlers, embedded assets
 - `internal/` — internal packages intended to be shared amongst layers
 - `web/` — TypeScript Svelte trainer UI with components

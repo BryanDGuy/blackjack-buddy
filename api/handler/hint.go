@@ -20,15 +20,15 @@ func NewHint(sessions *store.SessionStore) http.HandlerFunc {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
 				return
 			}
-			if g.Player == nil || g.Player.ActiveHand == nil {
+			if g.ActiveHand == nil {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
 				return
 			}
-			if g.Dealer == nil || g.Dealer.Hand == nil {
+			if g.DealerHand == nil {
 				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No dealer hand")
 				return
 			}
-			decision, err := strategy.MakeDecision(g.Player.ActiveHand, g.Dealer.Hand)
+			decision, err := strategy.MakeDecision(g.ActiveHand, g.DealerHand)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to get hint")
 				return

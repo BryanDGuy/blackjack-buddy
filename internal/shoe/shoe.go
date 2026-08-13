@@ -5,22 +5,22 @@ import (
 	"math/rand"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
-	"github.com/bryan/blackjack-buddy/internal/deck"
 )
 
 type Shoe struct {
 	Cards []card.Card
 }
 
-func NewShoe(decks []deck.Deck) Shoe {
-	cards := make([]card.Card, 0)
-	for _, d := range decks {
-		cards = append(cards, d.Cards...)
+func NewShoe(decks int) Shoe {
+	cards := make([]card.Card, 0, decks*52)
+	for range decks {
+		for rank := card.Two; rank <= card.Ace; rank++ {
+			for range 4 {
+				cards = append(cards, card.NewCard(rank))
+			}
+		}
 	}
-
-	return Shoe{
-		Cards: cards,
-	}
+	return Shoe{Cards: cards}
 }
 
 func (s *Shoe) Shuffle(rng *rand.Rand) {

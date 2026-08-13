@@ -21,17 +21,6 @@ func newServer() *server {
 	}
 }
 
-func (s *server) handleUI(w http.ResponseWriter, r *http.Request) {
-	data, err := fs.ReadFile(s.ui, "index.html")
-	if err != nil {
-		http.Error(w, "trainer UI not built", http.StatusServiceUnavailable)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(data)
-}
-
 func (s *server) handler() http.Handler {
 	mux := http.NewServeMux()
 
@@ -43,7 +32,7 @@ func (s *server) handler() http.Handler {
 
 	fileServer := http.FileServer(http.FS(s.ui))
 	mux.Handle("/assets/", fileServer)
-	mux.HandleFunc("GET /{$}", s.handleUI)
+	mux.Handle("GET /{$}", fileServer)
 	return mux
 }
 

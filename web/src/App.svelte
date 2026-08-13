@@ -219,16 +219,18 @@
       <button on:click={() => decide('SPLIT')} disabled={!canSplit}>SPLIT (P)</button>
     </div>
     {#if hint}
-      <div class="hint-wrap">
-        <div class="hint-button">?</div>
+      <details class="hint-wrap">
+        <summary aria-label="Show hint">?</summary>
         <div class="hint-panel hint-{hint.toLowerCase().replace(/\s+/g, '-')}">Hint: {hint}</div>
-      </div>
+      </details>
     {/if}
   </div>
 
   <div class={resultClass}>{resultText}</div>
   <div class="result outcome-box">{outcomeText}</div>
-  <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
+  {#if nextVisible}
+    <button class="next-btn" on:click={startNextRound}>Next (N)</button>
+  {/if}
 
   <StrategyTable />
 </div>
@@ -359,9 +361,10 @@
     align-items: center;
   }
 
-  .hint-button {
+  .hint-wrap summary {
     width: 28px;
     height: 28px;
+    list-style: none;
     border-radius: 50%;
     border: 2px solid #555;
     background: rgba(0, 0, 0, 0.4);
@@ -377,6 +380,10 @@
     z-index: 2;
   }
 
+  .hint-wrap summary::-webkit-details-marker {
+    display: none;
+  }
+
   .hint-panel {
     position: absolute;
     top: 0;
@@ -389,17 +396,7 @@
     font-size: 12px;
     color: #fff;
     white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    visibility: hidden;
     z-index: 10;
-  }
-
-  .hint-button:hover + .hint-panel {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
   }
 
   .hint-hit {
@@ -478,14 +475,7 @@
     width: 100%;
     padding: 14px;
     background: #2d2d2d;
-    visibility: hidden;
-    pointer-events: none;
     transition: background 0.2s ease;
-  }
-
-  .next-btn.visible {
-    visibility: visible;
-    pointer-events: auto;
   }
 
   .next-btn:hover {

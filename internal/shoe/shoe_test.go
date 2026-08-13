@@ -5,15 +5,24 @@ import (
 	"testing"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
-	"github.com/bryan/blackjack-buddy/internal/deck"
 )
 
 func TestNewShoe(t *testing.T) {
-	s := NewShoe([]deck.Deck{deck.NewDeck(), deck.NewDeck()})
+	s := NewShoe(2)
 
 	expectedCards := 2 * 52
 	if len(s.Cards) != expectedCards {
 		t.Errorf("NewShoe() Cards length = %d, want %d", len(s.Cards), expectedCards)
+	}
+
+	rankCounts := make(map[card.Rank]int)
+	for _, c := range s.Cards {
+		rankCounts[c.Rank()]++
+	}
+	for rank := card.Two; rank <= card.Ace; rank++ {
+		if got := rankCounts[rank]; got != 8 {
+			t.Errorf("NewShoe() count for rank %v = %d, want 8", rank, got)
+		}
 	}
 }
 
@@ -21,8 +30,8 @@ func TestShoe_Shuffle(t *testing.T) {
 	rng1 := rand.New(rand.NewSource(42))
 	rng2 := rand.New(rand.NewSource(43))
 
-	s1 := NewShoe([]deck.Deck{deck.NewDeck()})
-	s2 := NewShoe([]deck.Deck{deck.NewDeck()})
+	s1 := NewShoe(1)
+	s2 := NewShoe(1)
 
 	s1.Shuffle(rng1)
 	s2.Shuffle(rng2)
@@ -50,8 +59,8 @@ func TestShoe_Shuffle(t *testing.T) {
 func TestShoe_Shuffle_ChangesOrder(t *testing.T) {
 	rng := rand.New(rand.NewSource(42))
 
-	s1 := NewShoe([]deck.Deck{deck.NewDeck()})
-	s2 := NewShoe([]deck.Deck{deck.NewDeck()})
+	s1 := NewShoe(1)
+	s2 := NewShoe(1)
 
 	s2.Shuffle(rng)
 
@@ -71,7 +80,7 @@ func TestShoe_Shuffle_ChangesOrder(t *testing.T) {
 }
 
 func TestShoe_Draw(t *testing.T) {
-	s := NewShoe([]deck.Deck{deck.NewDeck()})
+	s := NewShoe(1)
 	initialTotal := len(s.Cards)
 
 	drawn := s.Draw()
@@ -86,7 +95,7 @@ func TestShoe_Draw(t *testing.T) {
 }
 
 func TestShoe_Draw_Multiple(t *testing.T) {
-	s := NewShoe([]deck.Deck{deck.NewDeck()})
+	s := NewShoe(1)
 	initialTotal := len(s.Cards)
 
 	cardsDrawn := 10
