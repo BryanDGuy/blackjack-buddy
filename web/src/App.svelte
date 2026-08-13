@@ -1,12 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { KEY_BINDINGS } from './constants';
-  import { loadDeal, makeMove, getHint } from './api';
+  import { abandonRound, loadDeal, makeMove, getHint } from './api';
   import Stats from './components/Stats.svelte';
   import StrategyTable from './components/StrategyTable.svelte';
 
   let playerCards: string[] = [];
-  let dealerCard = '';
   let dealerCards: string[] = [];
   let unresolvedHands: string[][] = [];
   let resolvedHands: string[][] = [];
@@ -16,23 +15,24 @@
   let resultText = 'Result: -';
   let resultClass = 'result';
   let outcomeText = 'Outcome: -';
-  let outcomeClass = 'result outcome-box';
-  let outcomes: string[] = [];
   let roundState = 'none';
   let nextVisible = false;
   let busy = false;
-  let locked = false;
+  let hintLoading = false;
 
   $: percent = total > 0 ? Math.round((correct / total) * 100) : 0;
-  $: derivedDealerCards = dealerCards.length ? dealerCards : dealerCard ? [dealerCard] : [];
-  
+  $: canDecide = roundState === 'active' && !nextVisible && !busy && !hintLoading && Boolean(hint);
+  $: canDouble = canDecide && playerCards.length === 2;
+  $: canSplit = canDouble && playerCards[0] === playerCards[1];
+
   let hintKey = '';
+  let hintGeneration = 0;
   $: {
-    if (!busy && roundState === 'active' && !locked) {
-      const newKey = `${playerCards.join(',')}-${dealerCard}`;
-      if (newKey !== hintKey && playerCards.length && dealerCard) {
+    if (!busy && roundState === 'active' && !nextVisible) {
+      const newKey = `${hintGeneration}-${playerCards.join(',')}-${dealerCards[0]}`;
+      if (newKey !== hintKey && playerCards.length && dealerCards[0]) {
         hintKey = newKey;
-        updateHint();
+        updateHint(newKey);
       }
     } else if (roundState !== 'active') {
       hint = '';
@@ -40,30 +40,38 @@
     }
   }
   
-  async function updateHint() {
-    if (!playerCards.length || !dealerCard || locked || roundState !== 'active' || busy) {
+  async function updateHint(key: string) {
+    if (!playerCards.length || !dealerCards[0] || nextVisible || roundState !== 'active' || busy) {
       return;
     }
-    hint = await getHint();
+    hintLoading = true;
+    const nextHint = await getHint();
+    if (hintKey === key) {
+      hintLoading = false;
+      if (nextHint) {
+        hint = nextHint;
+      } else {
+        nextVisible = true;
+        resultText = 'Hint unavailable. Start next round.';
+      }
+    }
   }
 
   async function handleLoadDeal() {
     try {
       const data = await loadDeal();
       playerCards = data.playerCards;
-      dealerCard = data.dealerCard;
-      dealerCards = dealerCard ? [dealerCard] : [];
+      dealerCards = data.dealerCard ? [data.dealerCard] : [];
       unresolvedHands = [];
       resolvedHands = [];
-      outcomes = [];
       roundState = 'active';
       hint = '';
+      hintKey = '';
+      hintGeneration += 1;
       resultText = 'Result: -';
       resultClass = 'result';
       outcomeText = 'Outcome: -';
-      outcomeClass = 'result outcome-box';
       nextVisible = false;
-      locked = false;
     } catch (err) {
       console.error('Failed to load deal:', err);
       alert(`Failed to load deal: ${err instanceof Error ? err.message : String(err)}`);
@@ -71,7 +79,7 @@
   }
 
   async function decide(decision: string) {
-    if (locked || busy || roundState !== 'active') {
+    if (!canDecide || (decision === 'DOUBLE DOWN' && !canDouble) || (decision === 'SPLIT' && !canSplit)) {
       return;
     }
 
@@ -88,7 +96,7 @@
       playerCards = result.activeHand;
       unresolvedHands = result.unresolvedHands;
       resolvedHands = result.resolvedHands || [];
-      outcomes = result.outcomes;
+      hintGeneration += 1;
 
       if (result.dealerCards.length > 0) {
         dealerCards = result.dealerCards;
@@ -100,24 +108,9 @@
 
       resultClass = `result ${isCorrect ? 'correct' : 'incorrect'}`;
       resultText = `${isCorrect ? 'Correct' : 'Incorrect'}: ${expectedHint || decision}`;
-      outcomeClass = 'result outcome-box';
       
-      if (result.outcomes.length > 0) {
-        const outcomeSummary = result.outcomes.join(' | ');
-        outcomeText = `Outcome: ${outcomeSummary}`;
-      } else {
-        outcomeText = 'Outcome: -';
-      }
-
-      if (result.roundState === 'complete') {
-        nextVisible = true;
-        locked = true;
-      } else if (!isCorrect) {
-        nextVisible = true;
-        locked = true;
-      } else {
-        nextVisible = false;
-      }
+      outcomeText = result.outcomes.length ? `Outcome: ${result.outcomes.join(' | ')}` : 'Outcome: -';
+      nextVisible = result.roundState === 'complete' || !isCorrect;
     } catch (err) {
       console.error('Failed to make move:', err);
     } finally {
@@ -130,8 +123,11 @@
       return;
     }
     busy = true;
-    locked = false;
     try {
+      if (roundState === 'active') {
+        await abandonRound();
+        roundState = 'none';
+      }
       await handleLoadDeal();
     } catch (err) {
       console.error('Failed to start next round:', err);
@@ -154,9 +150,6 @@
       startNextRound();
       return;
     }
-    if (locked || busy) {
-      return;
-    }
     decide(action);
   }
 
@@ -177,7 +170,7 @@
   <div class="section">
     <div class="label">Dealer Card</div>
     <div class="cards">
-      {#each derivedDealerCards as card, index}
+      {#each dealerCards as card, index}
         <div class="card" data-index={index}>{card}</div>
       {/each}
     </div>
@@ -186,17 +179,21 @@
   <div class="hands-container">
     <div class="section">
       <div class="label">Your Cards</div>
-      <div class="cards">
-        {#if playerCards.length > 0}
+      {#if playerCards.length > 0}
+        <div class="cards">
           {#each playerCards as card, index}
             <div class="card" data-index={index}>{card}</div>
           {/each}
-        {:else if roundState === 'complete' && resolvedHands.length === 1}
-          {#each resolvedHands[0] as card, index}
-            <div class="card" data-index={index}>{card}</div>
-          {/each}
-        {/if}
-      </div>
+        </div>
+      {:else if roundState === 'complete'}
+        {#each resolvedHands as hand}
+          <div class="cards resolved-hand">
+            {#each hand as card, index}
+              <div class="card" data-index={index}>{card}</div>
+            {/each}
+          </div>
+        {/each}
+      {/if}
     </div>
     {#if unresolvedHands.length > 0}
       <div class="inactive-hands">
@@ -216,22 +213,24 @@
 
   <div class="buttons-section">
     <div class="buttons">
-      <button on:click={() => decide('HIT')} disabled={locked || busy}>HIT (H)</button>
-      <button on:click={() => decide('STAND')} disabled={locked || busy}>STAND (S)</button>
-      <button on:click={() => decide('DOUBLE DOWN')} disabled={locked || busy}>DOUBLE DOWN (D)</button>
-      <button on:click={() => decide('SPLIT')} disabled={locked || busy}>SPLIT (P)</button>
+      <button on:click={() => decide('HIT')} disabled={!canDecide}>HIT (H)</button>
+      <button on:click={() => decide('STAND')} disabled={!canDecide}>STAND (S)</button>
+      <button on:click={() => decide('DOUBLE DOWN')} disabled={!canDouble}>DOUBLE DOWN (D)</button>
+      <button on:click={() => decide('SPLIT')} disabled={!canSplit}>SPLIT (P)</button>
     </div>
     {#if hint}
-      <div class="hint-wrap">
-        <div class="hint-button">?</div>
+      <details class="hint-wrap">
+        <summary aria-label="Show hint">?</summary>
         <div class="hint-panel hint-{hint.toLowerCase().replace(/\s+/g, '-')}">Hint: {hint}</div>
-      </div>
+      </details>
     {/if}
   </div>
 
   <div class={resultClass}>{resultText}</div>
-  <div class={outcomeClass}>{outcomeText}</div>
-  <button class="next-btn" class:visible={nextVisible} on:click={startNextRound}>Next (N)</button>
+  <div class="result outcome-box">{outcomeText}</div>
+  {#if nextVisible}
+    <button class="next-btn" on:click={startNextRound}>Next (N)</button>
+  {/if}
 
   <StrategyTable />
 </div>
@@ -265,21 +264,6 @@
     padding: 16px;
     background: #222;
     border-radius: 8px;
-  }
-
-  .stat {
-    text-align: center;
-  }
-
-  .stat-value {
-    font-size: 28px;
-    font-weight: bold;
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: #888;
-    margin-top: 4px;
   }
 
   .hands-container {
@@ -377,9 +361,10 @@
     align-items: center;
   }
 
-  .hint-button {
+  .hint-wrap summary {
     width: 28px;
     height: 28px;
+    list-style: none;
     border-radius: 50%;
     border: 2px solid #555;
     background: rgba(0, 0, 0, 0.4);
@@ -395,6 +380,10 @@
     z-index: 2;
   }
 
+  .hint-wrap summary::-webkit-details-marker {
+    display: none;
+  }
+
   .hint-panel {
     position: absolute;
     top: 0;
@@ -407,17 +396,7 @@
     font-size: 12px;
     color: #fff;
     white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    visibility: hidden;
     z-index: 10;
-  }
-
-  .hint-button:hover + .hint-panel {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
   }
 
   .hint-hit {
@@ -451,12 +430,17 @@
     transition: all 0.2s;
   }
 
-  button:hover {
+  button:not(:disabled):hover {
     background: #444;
     border-color: #777;
   }
 
-  button:active {
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  button:not(:disabled):active {
     transform: scale(0.98);
   }
 
@@ -484,10 +468,6 @@
   .outcome-box {
     background: #222;
     border: 2px solid #555;
-    min-height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .next-btn {
@@ -495,19 +475,7 @@
     width: 100%;
     padding: 14px;
     background: #2d2d2d;
-    color: #fff;
-    border: 2px solid #555;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    visibility: hidden;
-    pointer-events: none;
     transition: background 0.2s ease;
-  }
-
-  .next-btn.visible {
-    visibility: visible;
-    pointer-events: auto;
   }
 
   .next-btn:hover {

@@ -1,18 +1,20 @@
-import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { defineConfig } from 'vite';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import type { UserConfig } from 'vite';
+import type { TestUserConfig } from 'vitest/config';
 
-const rootDir = dirname(fileURLToPath(import.meta.url));
+type Config = UserConfig & { test: TestUserConfig };
 
-export default defineConfig({
-  plugins: [
-    svelte({
-      preprocess: vitePreprocess()
-    })
-  ],
+export default {
+  plugins: [svelte()],
   build: {
-    outDir: resolve(rootDir, '../api/assets'),
+    outDir: '../api/assets',
     emptyOutDir: true
+  },
+  resolve: {
+    conditions: ['browser']
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true
   }
-});
+} satisfies Config;

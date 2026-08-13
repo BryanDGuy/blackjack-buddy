@@ -1,3 +1,4 @@
+// Package strategy provides blackjack decisions.
 package strategy
 
 import (
@@ -15,21 +16,7 @@ const (
 	Split      Decision = "SPLIT"
 )
 
-type Strategy interface {
-	GetDecision(playerHand, dealerHand *hand.Hand) Decision
-}
-
-type Advisor struct {
-	strategy Strategy
-}
-
-func NewAdvisor(strategy Strategy) *Advisor {
-	return &Advisor{
-		strategy: strategy,
-	}
-}
-
-func (a *Advisor) MakeDecision(playerHand, dealerHand *hand.Hand) (Decision, error) {
+func MakeDecision(playerHand, dealerHand *hand.Hand) (Decision, error) {
 	if playerHand.IsEmpty() {
 		return Hit, fmt.Errorf("player hand is empty")
 	}
@@ -46,7 +33,7 @@ func (a *Advisor) MakeDecision(playerHand, dealerHand *hand.Hand) (Decision, err
 		return Stand, nil
 	}
 
-	decision := a.strategy.GetDecision(playerHand, dealerHand)
+	decision := decisionMatrix[playerHand.GetType()][dealerCardIndex(dealerHand.Cards[0])]
 
 	if decision == DoubleDown && len(playerHand.Cards) > 2 {
 		decision = Hit

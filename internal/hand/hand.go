@@ -1,22 +1,20 @@
+// Package hand models blackjack hands.
 package hand
 
 import (
-	"fmt"
-	"strings"
+	"slices"
 
 	"github.com/bryan/blackjack-buddy/internal/card"
 )
 
 type Hand struct {
-	Cards []card.Card
+	Cards     []card.Card
+	FromSplit bool
 }
 
 func NewHand(cards []card.Card) *Hand {
-	c := make([]card.Card, len(cards))
-	copy(c, cards)
-
 	return &Hand{
-		Cards: c,
+		Cards: slices.Clone(cards),
 	}
 }
 
@@ -81,16 +79,4 @@ func (h *Hand) IsSoft() bool {
 	}
 
 	return aces > 0 && totalWithoutAces+11+(aces-1) <= 21
-}
-
-func (h *Hand) ToString() string {
-	if h.IsEmpty() {
-		return "[]"
-	}
-
-	var cards []string
-	for _, c := range h.Cards {
-		cards = append(cards, c.ToString())
-	}
-	return fmt.Sprintf("[%s]", strings.Join(cards, ", "))
 }

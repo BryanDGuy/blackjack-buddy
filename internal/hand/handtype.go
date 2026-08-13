@@ -49,91 +49,28 @@ const (
 
 func (h *Hand) GetType() HandType {
 	if h.CanSplit() {
-		pairCard := h.Cards[0]
-		switch pairCard.Rank() {
-		case card.Ace:
-			return PairA
-		case card.Ten, card.Jack, card.Queen, card.King:
+		rank := h.Cards[0].Rank()
+		if rank >= card.Ten && rank <= card.King {
 			return Pair10
-		case card.Nine:
-			return Pair9
-		case card.Eight:
-			return Pair8
-		case card.Seven:
-			return Pair7
-		case card.Six:
-			return Pair6
-		case card.Five:
-			return Pair5
-		case card.Four:
-			return Pair4
-		case card.Three:
-			return Pair3
-		case card.Two:
-			return Pair2
+		}
+		if rank == card.Ace {
+			return PairA
+		}
+		if rank >= card.Two && rank <= card.Nine {
+			return Pair9 + HandType(card.Nine-rank)
 		}
 	}
 
 	value := h.Value()
 
 	if h.IsSoft() {
-		switch value {
-		case 20:
-			return SoftA9
-		case 19:
-			return SoftA8
-		case 18:
-			return SoftA7
-		case 17:
-			return SoftA6
-		case 16:
-			return SoftA5
-		case 15:
-			return SoftA4
-		case 14:
-			return SoftA3
-		case 13:
-			return SoftA2
+		if value >= 13 && value <= 20 {
+			return SoftA9 + HandType(20-value)
 		}
 	}
 
-	switch value {
-	case 21:
-		return Hard21
-	case 20:
-		return Hard20
-	case 19:
-		return Hard19
-	case 18:
-		return Hard18
-	case 17:
-		return Hard17
-	case 16:
-		return Hard16
-	case 15:
-		return Hard15
-	case 14:
-		return Hard14
-	case 13:
-		return Hard13
-	case 12:
-		return Hard12
-	case 11:
-		return Hard11
-	case 10:
-		return Hard10
-	case 9:
-		return Hard9
-	case 8:
-		return Hard8
-	case 7:
-		return Hard7
-	case 6:
-		return Hard6
-	case 5:
-		return Hard5
-	case 4:
-		return Hard4
+	if value >= 4 && value <= 21 {
+		return Hard21 + HandType(21-value)
 	}
 
 	panic(fmt.Sprintf("unreachable: hand value %d cannot be classified", value))

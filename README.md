@@ -6,11 +6,12 @@ Blackjack decision assistant implementing basic strategy. Minimal Go HTTP server
 
 ## Features
 
-- Matrix-based strategy lookup with advisor
+- Matrix-based strategy lookup
 - Embedded web trainer with round simulation
 - Supports hard, soft, doubles, and splits
 - Finite multi-deck shoe with card tracking and reshuffling
-- Winnings tracking with pot, bet, and round outcomes
+- Round outcome tracking across normal and split hands
+- Six decks, dealer stands on soft 17 (S17), double after split, no surrender, no insurance
 - TypeScript-based Svelte UI with component architecture
 
 ## Quick Start
@@ -39,6 +40,6 @@ The binary hosts the HTTP API and embedded trainer UI.
 
 ## Structure
 
-- `api/` — HTTP server, handlers, helpers, embedded assets
+- `api/` — HTTP server, handlers, embedded assets
 - `internal/` — internal packages intended to be shared amongst layers
 - `web/` — TypeScript Svelte trainer UI with components

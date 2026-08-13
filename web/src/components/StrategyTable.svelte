@@ -1,61 +1,39 @@
 <script lang="ts">
   import { TABLE_HEADERS, HARD_MATRIX, SOFT_MATRIX, PAIR_MATRIX } from '../constants';
-  import { rowDecisions, decisionClass } from '../utils';
+
+  const sections = [
+    { title: 'Hard Hands', rows: HARD_MATRIX },
+    { title: 'Soft Hands', rows: SOFT_MATRIX },
+    { title: 'Pairs', rows: PAIR_MATRIX }
+  ];
+  const decisionClasses: Record<string, string> = {
+    S: 'cell-stand', H: 'cell-hit', D: 'cell-double', SP: 'cell-split'
+  };
 </script>
 
-<div class="info-wrap">
-  <div class="info-button">i</div>
+<details class="info-wrap">
+  <summary aria-label="Show strategy tables">i</summary>
   <div class="info-panel">
-    <div class="section">Hard Hands</div>
-    <table>
-      <tr>
-        {#each TABLE_HEADERS as header}
-          <th>{header}</th>
-        {/each}
-      </tr>
-      {#each HARD_MATRIX as row}
+    {#each sections as section}
+      <div class="section">{section.title}</div>
+      <table>
         <tr>
-          <td>{row[0]}</td>
-          {#each rowDecisions(row) as decision}
-            <td class={decisionClass(decision)}>{decision}</td>
+          {#each TABLE_HEADERS as header}
+            <th>{header}</th>
           {/each}
         </tr>
-      {/each}
-    </table>
-    <div class="section">Soft Hands</div>
-    <table>
-      <tr>
-        {#each TABLE_HEADERS as header}
-          <th>{header}</th>
+        {#each section.rows as row}
+          <tr>
+            <td>{row[0]}</td>
+            {#each row.slice(1) as decision}
+              <td class={decisionClasses[decision] ?? ''}>{decision}</td>
+            {/each}
+          </tr>
         {/each}
-      </tr>
-      {#each SOFT_MATRIX as row}
-        <tr>
-          <td>{row[0]}</td>
-          {#each rowDecisions(row) as decision}
-            <td class={decisionClass(decision)}>{decision}</td>
-          {/each}
-        </tr>
-      {/each}
-    </table>
-    <div class="section">Pairs</div>
-    <table>
-      <tr>
-        {#each TABLE_HEADERS as header}
-          <th>{header}</th>
-        {/each}
-      </tr>
-      {#each PAIR_MATRIX as row}
-        <tr>
-          <td>{row[0]}</td>
-          {#each rowDecisions(row) as decision}
-            <td class={decisionClass(decision)}>{decision}</td>
-          {/each}
-        </tr>
-      {/each}
-    </table>
+      </table>
+    {/each}
   </div>
-</div>
+</details>
 
 <style>
   .info-wrap {
@@ -67,9 +45,10 @@
     z-index: 10;
   }
 
-  .info-button {
+  .info-wrap summary {
     width: 36px;
     height: 36px;
+    list-style: none;
     border-radius: 50%;
     border: 2px solid #555;
     background: rgba(0, 0, 0, 0.4);
@@ -84,6 +63,10 @@
     z-index: 2;
   }
 
+  .info-wrap summary::-webkit-details-marker {
+    display: none;
+  }
+
   .info-panel {
     width: 320px;
     background: rgba(0, 0, 0, 0.92);
@@ -92,19 +75,9 @@
     padding: 16px;
     font-size: 12px;
     line-height: 1.4;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
     position: absolute;
     top: 0;
     right: 44px;
-    visibility: hidden;
-  }
-
-  .info-wrap:hover .info-panel {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
   }
 
   .info-panel table {
@@ -147,4 +120,3 @@
     color: #fff;
   }
 </style>
-

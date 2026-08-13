@@ -7,10 +7,6 @@ export interface DealResponse {
   dealerCard: string;
 }
 
-export interface MoveRequest {
-  move: string;
-}
-
 export interface MoveResponse {
   roundState: string;
   activeHand: string[];
@@ -32,10 +28,7 @@ export interface ErrorResponse {
 let gameId: string | null = null;
 
 export async function createGame(): Promise<string> {
-  const res = await fetch('/api/game', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  });
+  const res = await fetch('/api/game', { method: 'POST' });
   if (!res.ok) {
     const err: ErrorResponse = await res.json();
     throw new Error(err.error || 'Failed to create game');
@@ -49,10 +42,7 @@ export async function loadDeal(): Promise<DealResponse> {
   if (!gameId) {
     await createGame();
   }
-  const res = await fetch(`/api/game/${gameId}/deal`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  });
+  const res = await fetch(`/api/game/${gameId}/deal`, { method: 'POST' });
   if (!res.ok) {
     const err: ErrorResponse = await res.json();
     throw new Error(err.error || 'Failed to load deal');
@@ -76,15 +66,18 @@ export async function makeMove(move: string): Promise<MoveResponse> {
   return res.json();
 }
 
+export async function abandonRound(): Promise<void> {
+  if (!gameId) return;
+  const res = await fetch(`/api/game/${gameId}/abandon`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to abandon round');
+}
+
 export async function getHint(): Promise<string> {
   if (!gameId) {
     return '';
   }
   try {
-    const res = await fetch(`/api/game/${gameId}/hint`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const res = await fetch(`/api/game/${gameId}/hint`);
     if (!res.ok) {
       return '';
     }

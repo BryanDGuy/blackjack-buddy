@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 
-	"github.com/bryan/blackjack-buddy/api/helpers"
 	"github.com/bryan/blackjack-buddy/api/store"
 	"github.com/bryan/blackjack-buddy/internal/game"
 	"github.com/bryan/blackjack-buddy/internal/strategy"
@@ -16,97 +14,76 @@ type moveRequest struct {
 	Move string `json:"move"`
 }
 
-func NewMove(store *store.SessionStore) http.HandlerFunc {
+func NewMove(sessions *store.SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			writeError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST method is allowed")
-			return
-		}
-
-		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-		if len(pathParts) < 4 {
-			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid game ID in path")
-			return
-		}
-
-		gameId := pathParts[2]
-		g, exists := store.Get(gameId)
-		if !exists {
-			writeError(w, http.StatusNotFound, "GAME_NOT_FOUND", "Game not found")
-			return
-		}
-
-		if g.RoundState != game.RoundStateActive {
-			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
-			return
-		}
-
-		player := g.Player
-		if player == nil || player.ActiveHand == nil {
-			writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
-			return
-		}
-
-		var req moveRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
-			return
-		}
-
-		decision := strategy.Decision(req.Move)
-		err := g.ApplyMove(decision)
-
-		if err != nil {
-			if errors.Is(err, game.ErrInvalidMove) || errors.Is(err, game.ErrInvalidSplit) {
-				writeError(w, http.StatusBadRequest, "INVALID_MOVE", err.Error())
-				return
-			}
-			if errors.Is(err, game.ErrNoActiveHand) {
-				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", err.Error())
-				return
-			}
-			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to apply decision")
-			return
-		}
-
-		activeHand := []string{}
-		if player.ActiveHand != nil {
-			activeHand = helpers.CardsToStrings(player.ActiveHand.Cards)
-		}
-
-		unresolvedHands := make([][]string, len(player.UnresolvedHands))
-		for i, h := range player.UnresolvedHands {
-			unresolvedHands[i] = helpers.CardsToStrings(h.Cards)
-		}
-
-		resolvedHands := make([][]string, len(player.ResolvedHands))
-		for i, h := range player.ResolvedHands {
-			resolvedHands[i] = helpers.CardsToStrings(h.Cards)
-		}
-
-		dealerCards := []string{}
-		if g.Dealer != nil && g.Dealer.Hand != nil {
-			dealerCards = helpers.CardsToStrings(g.Dealer.Hand.Cards)
-		}
-
-		resp := struct {
+		var response struct {
 			RoundState      string         `json:"roundState"`
 			ActiveHand      []string       `json:"activeHand"`
 			UnresolvedHands [][]string     `json:"unresolvedHands"`
 			ResolvedHands   [][]string     `json:"resolvedHands"`
 			DealerCards     []string       `json:"dealerCards"`
 			Outcomes        []game.Outcome `json:"outcomes"`
-		}{
-			RoundState:      string(g.RoundState),
-			ActiveHand:      activeHand,
-			UnresolvedHands: unresolvedHands,
-			ResolvedHands:   resolvedHands,
-			DealerCards:     dealerCards,
-			Outcomes:        g.Outcomes,
+		}
+		success := false
+		if !sessions.WithGame(r.PathValue("id"), func(g *game.Game) {
+			if g.RoundState != game.RoundStateActive {
+				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active round")
+				return
+			}
+			if g.ActiveHand == nil {
+				writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", "No active hand")
+				return
+			}
+			var req moveRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
+				return
+			}
+			if err := g.ApplyMove(strategy.Decision(req.Move)); err != nil {
+				if errors.Is(err, game.ErrInvalidMove) || errors.Is(err, game.ErrInvalidSplit) {
+					writeError(w, http.StatusBadRequest, "INVALID_MOVE", err.Error())
+					return
+				}
+				if errors.Is(err, game.ErrNoActiveHand) {
+					writeError(w, http.StatusConflict, "NO_ACTIVE_ROUND", err.Error())
+					return
+				}
+				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to apply decision")
+				return
+			}
+			response.RoundState = string(g.RoundState)
+			response.ActiveHand = []string{}
+			if g.ActiveHand != nil {
+				response.ActiveHand = cardsToStrings(g.ActiveHand.Cards)
+			}
+			response.UnresolvedHands = make([][]string, len(g.UnresolvedHands))
+			for i, h := range g.UnresolvedHands {
+				response.UnresolvedHands[i] = cardsToStrings(h.Cards)
+			}
+			response.ResolvedHands = make([][]string, len(g.ResolvedHands))
+			for i, h := range g.ResolvedHands {
+				response.ResolvedHands[i] = cardsToStrings(h.Cards)
+			}
+			response.DealerCards = []string{}
+			if g.DealerHand != nil {
+				dealerCards := g.DealerHand.Cards
+				if g.RoundState == game.RoundStateActive && len(dealerCards) > 0 {
+					dealerCards = dealerCards[:1]
+				}
+				response.DealerCards = cardsToStrings(dealerCards)
+			}
+			response.Outcomes = append([]game.Outcome{}, g.Outcomes...)
+			success = true
+		}) {
+			writeError(w, http.StatusNotFound, "GAME_NOT_FOUND", "Game not found")
+			return
+		}
+		if !success {
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
+		json.NewEncoder(w).Encode(response)
 	}
 }
